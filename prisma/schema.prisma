@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 회원 — 선수 프로필을 겸한다 (포지션, 레벨, 활동 지역)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nickname  String   @unique
+  password  String
+  position  String? // GK / DF / MF / FW
+  level     Int      @default(3) // 1(입문) ~ 5(선출급)
+  region    String?
+  bio       String?
+  createdAt DateTime @default(now())
+
+  ownedTeams     Team[]
+  memberships    TeamMember[]
+  matchPosts     MatchPost[]
+  transferPosts  TransferPost[]
+  mercenaryPosts MercenaryPost[]
+  comments       Comment[]
+  reservations   Reservation[]
+}
+
+// 팀 — 전적(MatchRecord)과 멤버 이력으로 팀의 활동/실력을 보여준다
+model Team {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  region      String
+  level       Int      @default(3)
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner      User          @relation(fields: [ownerId], references: [id])
+  members    TeamMember[]
+  records    MatchRecord[]
+  matchPosts MatchPost[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     String   @default("MEMBER") // OWNER / MEMBER
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+// 팀 경기 전적
+model MatchRecord {
+  id           String   @id @default(cuid())
+  teamId       String
+  opponent     String
+  playedAt     DateTime
+  result       String // WIN / DRAW / LOSS
+  scoreFor     Int
+  scoreAgainst Int
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+// 1. 상대팀을 찾는 매치 게시글
+model MatchPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  region    String
+  venue     String
+  matchDate String // YYYY-MM-DD
+  startTime String // HH:mm
+  endTime   String // HH:mm
+  format    String // 11vs11 / 9vs9 / 풋살
+  status    String   @default("OPEN") // OPEN / MATCHED / CLOSED
+  views     Int      @default(0)
+  authorId  String
+  teamId    String?
+  createdAt DateTime @default(now())
+
+  author User  @relation(fields: [authorId], references: [id])
+  team   Team? @relation(fields: [teamId], references: [id])
+}
+
+// 2. 구장 양도/양수 게시글
+model TransferPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  tradeType String // GIVE(양도) / TAKE(양수 희망)
+  region    String
+  venueName String
+  matchDate String
+  startTime String
+  endTime   String
+  price     Int
+  status    String   @default("OPEN") // OPEN / DONE
+  views     Int      @default(0)
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+// 3. 용병 구함 / 용병 지원 게시글
+model MercenaryPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  postType  String // RECRUIT(용병 구해요) / OFFER(용병 갈게요)
+  region    String
+  matchDate String?
+  position  String? // GK / DF / MF / FW / 무관
+  level     Int      @default(3)
+  fee       Int      @default(0) // 참가비/일당
+  status    String   @default("OPEN") // OPEN / DONE
+  views     Int      @default(0)
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+// 4. 예약 가능한 구장
+model Venue {
+  id           String  @id @default(cuid())
+  name         String
+  region       String
+  address      String
+  venueType    String // FUTSAL / SOCCER
+  surface      String  @default("인조잔디")
+  pricePerHour Int
+  openHour     Int     @default(6)
+  closeHour    Int     @default(24)
+  description  String?
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  venueId   String
+  userId    String
+  date      String // YYYY-MM-DD
+  startHour Int
+  endHour   Int
+  status    String   @default("CONFIRMED") // CONFIRMED / CANCELLED
+  createdAt DateTime @default(now())
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 게시글 공통 댓글 (postType + postId 로 연결)
+model Comment {
+  id        String   @id @default(cuid())
+  postType  String // MATCH / TRANSFER / MERCENARY
+  postId    String
+  content   String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postType, postId])
+}

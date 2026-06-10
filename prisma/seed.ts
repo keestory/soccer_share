@@ -1,0 +1,266 @@
+import { PrismaClient } from "@prisma/client";
+import { randomBytes, scryptSync } from "crypto";
+
+const prisma = new PrismaClient();
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
+}
+
+function dateAfter(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+async function main() {
+  await prisma.comment.deleteMany();
+  await prisma.reservation.deleteMany();
+  await prisma.matchRecord.deleteMany();
+  await prisma.matchPost.deleteMany();
+  await prisma.transferPost.deleteMany();
+  await prisma.mercenaryPost.deleteMany();
+  await prisma.teamMember.deleteMany();
+  await prisma.team.deleteMany();
+  await prisma.venue.deleteMany();
+  await prisma.user.deleteMany();
+
+  const password = hashPassword("test1234");
+
+  const [u1, u2, u3, u4] = await Promise.all([
+    prisma.user.create({
+      data: {
+        email: "demo@soccershare.kr",
+        nickname: "뒤뚱뒤뚱",
+        password,
+        position: "MF",
+        level: 3,
+        region: "서울 성동구",
+        bio: "주말 오후 위주로 뜁니다. 패스 축구 좋아해요.",
+      },
+    }),
+    prisma.user.create({
+      data: { email: "u2@soccershare.kr", nickname: "쉐바ㅋㅋ", password, position: "FW", level: 4, region: "서울 도봉구" },
+    }),
+    prisma.user.create({
+      data: { email: "u3@soccershare.kr", nickname: "구남친FC주장", password, position: "DF", level: 3, region: "서울 광진구" },
+    }),
+    prisma.user.create({
+      data: { email: "u4@soccershare.kr", nickname: "이태리때밀이", password, position: "GK", level: 2, region: "서울 노원구" },
+    }),
+  ]);
+
+  const team1 = await prisma.team.create({
+    data: {
+      name: "하하하FC",
+      region: "서울 성동구",
+      level: 3,
+      description: "매주 일요일 저녁에 모이는 직장인 팀입니다. 즐겜 위주, 뒤풀이 환영!",
+      ownerId: u1.id,
+      members: {
+        create: [
+          { userId: u1.id, role: "OWNER" },
+          { userId: u2.id },
+          { userId: u4.id },
+        ],
+      },
+      records: {
+        create: [
+          { opponent: "FC LIBRE", playedAt: new Date(Date.now() - 7 * 864e5), result: "WIN", scoreFor: 3, scoreAgainst: 1 },
+          { opponent: "휘바휘바FC", playedAt: new Date(Date.now() - 14 * 864e5), result: "DRAW", scoreFor: 2, scoreAgainst: 2 },
+          { opponent: "FK리버스", playedAt: new Date(Date.now() - 21 * 864e5), result: "LOSS", scoreFor: 0, scoreAgainst: 2 },
+        ],
+      },
+    },
+  });
+
+  await prisma.team.create({
+    data: {
+      name: "구남친FC",
+      region: "서울 광진구",
+      level: 4,
+      description: "토요일 오전 다산체육공원에서 활동합니다. 빡겜파 환영.",
+      ownerId: u3.id,
+      members: { create: [{ userId: u3.id, role: "OWNER" }] },
+      records: {
+        create: [
+          { opponent: "샴엘FC", playedAt: new Date(Date.now() - 5 * 864e5), result: "WIN", scoreFor: 4, scoreAgainst: 2 },
+        ],
+      },
+    },
+  });
+
+  await prisma.matchPost.createMany({
+    data: [
+      {
+        title: `${dateAfter(4).slice(5).replace("-", "/")} 18시-20시 한양대학교 대운동장 축구매칭 구합니다`,
+        content: "하하하 팀만 연락주세요! 11vs11, 구장비 반반 부담입니다. 실력은 중급 정도예요.",
+        region: "서울 성동구",
+        venue: "한양대학교 대운동장",
+        matchDate: dateAfter(4),
+        startTime: "18:00",
+        endTime: "20:00",
+        format: "11vs11",
+        status: "OPEN",
+        authorId: u1.id,
+        teamId: team1.id,
+        views: 33,
+      },
+      {
+        title: "어린이대공원축구장 20-22 매칭초청합니다 (교환경기 우선)",
+        content: "3주차 교환경기 우선으로 받습니다. 인조잔디 구장이고 주차 가능합니다.",
+        region: "서울 광진구",
+        venue: "어린이대공원축구장",
+        matchDate: dateAfter(12),
+        startTime: "20:00",
+        endTime: "22:00",
+        format: "11vs11",
+        status: "OPEN",
+        authorId: u3.id,
+        views: 13,
+      },
+      {
+        title: "토요일 오전 8:30~10:30 도봉구 방학초 매칭팀 모십니다",
+        content: "9vs9 가능합니다. 구장비 5만원 반반. 매너 게임 지향합니다.",
+        region: "서울 도봉구",
+        venue: "방학초등학교",
+        matchDate: dateAfter(3),
+        startTime: "08:30",
+        endTime: "10:30",
+        format: "9vs9",
+        status: "MATCHED",
+        authorId: u2.id,
+        views: 19,
+      },
+    ],
+  });
+
+  await prisma.transferPost.createMany({
+    data: [
+      {
+        title: `(양도) ${dateAfter(4).slice(5).replace("-", "/")} 13:00-15:00 대진고등학교 축구장 양도`,
+        content: "사정이 생겨 양도합니다. 결제 금액 그대로 넘겨드려요. 댓글이나 쪽지 주세요.",
+        tradeType: "GIVE",
+        region: "서울 노원구",
+        venueName: "대진고등학교 축구장",
+        matchDate: dateAfter(4),
+        startTime: "13:00",
+        endTime: "15:00",
+        price: 90000,
+        authorId: u4.id,
+        views: 8,
+      },
+      {
+        title: "이번 주 토요일 저녁 광진구 쪽 풋살장 양수 원합니다",
+        content: "6~8시 사이 2시간 자리 있으면 양수하겠습니다. 가격 협의 가능해요.",
+        tradeType: "TAKE",
+        region: "서울 광진구",
+        venueName: "협의",
+        matchDate: dateAfter(3),
+        startTime: "18:00",
+        endTime: "20:00",
+        price: 0,
+        authorId: u1.id,
+        views: 15,
+      },
+    ],
+  });
+
+  await prisma.mercenaryPost.createMany({
+    data: [
+      {
+        title: "6/13(토) 오전 7~9시 서울중곡초등학교 9:9 축구 용병 2명 구합니다",
+        content: "수비형 미드필더, 센터백 한 분씩 모십니다. 참가비 1만원, 물/조끼 제공.",
+        postType: "RECRUIT",
+        region: "서울 광진구",
+        matchDate: dateAfter(3),
+        position: "DF",
+        level: 3,
+        fee: 10000,
+        authorId: u3.id,
+        views: 18,
+      },
+      {
+        title: "주말 아무때나 용병 갑니다 (FW, 상급)",
+        content: "선출은 아니지만 동호회 8년차입니다. 노원/도봉 쪽이면 어디든 갑니다.",
+        postType: "OFFER",
+        region: "서울 노원구",
+        position: "FW",
+        level: 4,
+        fee: 0,
+        authorId: u2.id,
+        views: 27,
+      },
+    ],
+  });
+
+  const venues = await Promise.all([
+    prisma.venue.create({
+      data: {
+        name: "중랑구립운동장",
+        region: "서울 중랑구",
+        address: "서울 중랑구 망우로 지하 도로변",
+        venueType: "SOCCER",
+        surface: "인조잔디",
+        pricePerHour: 60000,
+        openHour: 6,
+        closeHour: 22,
+        description: "11vs11 정규 규격 축구장. 야간 조명 완비, 주차 무료.",
+      },
+    }),
+    prisma.venue.create({
+      data: {
+        name: "살곶이 체육공원 축구장",
+        region: "서울 성동구",
+        address: "서울 성동구 한양대 옆 중랑천변",
+        venueType: "SOCCER",
+        surface: "인조잔디",
+        pricePerHour: 50000,
+        openHour: 6,
+        closeHour: 22,
+        description: "중랑천변 인조잔디 구장. 접근성 좋고 새벽 시간대 인기.",
+      },
+    }),
+    prisma.venue.create({
+      data: {
+        name: "노원 초안산 풋살파크",
+        region: "서울 노원구",
+        address: "서울 노원구 초안산 인근",
+        venueType: "FUTSAL",
+        surface: "인조잔디",
+        pricePerHour: 40000,
+        openHour: 8,
+        closeHour: 24,
+        description: "풋살 전용 2면. 샤워실, 조끼/공 대여 가능.",
+      },
+    }),
+    prisma.venue.create({
+      data: {
+        name: "용마폭포공원 다목적구장",
+        region: "서울 중랑구",
+        address: "서울 중랑구 용마산로 인근",
+        venueType: "FUTSAL",
+        surface: "우레탄",
+        pricePerHour: 30000,
+        openHour: 9,
+        closeHour: 23,
+        description: "야간 경기 추천. 폭포 뷰가 일품인 다목적 구장.",
+      },
+    }),
+  ]);
+
+  await prisma.reservation.create({
+    data: { venueId: venues[0].id, userId: u1.id, date: dateAfter(4), startHour: 18, endHour: 20 },
+  });
+
+  console.log("✅ 시드 데이터 생성 완료");
+  console.log("   데모 계정: demo@soccershare.kr / test1234");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
