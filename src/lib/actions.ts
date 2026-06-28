@@ -217,6 +217,84 @@ export async function addMatchRecord(formData: FormData) {
   revalidatePath(`/teams/${teamId}`);
 }
 
+// ---------- 선수 관리 / 랭킹 ----------
+
+async function requireOwnedTeam(teamId: string) {
+  const user = await requireUser();
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team || team.ownerId !== user.id) throw new Error("팀 주장만 선수를 관리할 수 있습니다.");
+  return team;
+}
+
+export async function addPlayer(formData: FormData) {
+  const teamId = field(formData, "teamId");
+  await requireOwnedTeam(teamId);
+  const name = field(formData, "name");
+  if (!name) throw new Error("선수 이름을 입력해주세요.");
+  const numberRaw = field(formData, "number");
+  await prisma.player.create({
+    data: {
+      teamId,
+      name,
+      position: field(formData, "position") || "MF",
+      number: numberRaw ? Number(numberRaw) : null,
+    },
+  });
+  revalidatePath(`/teams/${teamId}/players`);
+}
+
+export async function removePlayer(teamId: string, playerId: string) {
+  await requireOwnedTeam(teamId);
+  await prisma.player.deleteMany({ where: { id: playerId, teamId } });
+  revalidatePath(`/teams/${teamId}/players`);
+}
+
+// 골/도움 기록 (선수 · 경기 · 쿼터)
+export async function addPlayerEvent(formData: FormData) {
+  const teamId = field(formData, "teamId");
+  await requireOwnedTeam(teamId);
+  const matchRecordId = field(formData, "matchRecordId");
+  const playerId = field(formData, "playerId");
+  const match = await prisma.matchRecord.findFirst({ where: { id: matchRecordId, teamId } });
+  const player = await prisma.player.findFirst({ where: { id: playerId, teamId } });
+  if (!match || !player) throw new Error("경기 또는 선수를 찾을 수 없습니다.");
+  await prisma.playerEvent.create({
+    data: {
+      matchRecordId,
+      playerId,
+      type: field(formData, "type") === "ASSIST" ? "ASSIST" : "GOAL",
+      quarter: Math.max(1, Number(formData.get("quarter") ?? 1)),
+    },
+  });
+  revalidatePath(`/teams/${teamId}/players`);
+}
+
+// 출전/평점/클린시트 기록 (선수 · 경기)
+export async function recordAppearance(formData: FormData) {
+  const teamId = field(formData, "teamId");
+  await requireOwnedTeam(teamId);
+  const matchRecordId = field(formData, "matchRecordId");
+  const playerId = field(formData, "playerId");
+  const match = await prisma.matchRecord.findFirst({ where: { id: matchRecordId, teamId } });
+  const player = await prisma.player.findFirst({ where: { id: playerId, teamId } });
+  if (!match || !player) throw new Error("경기 또는 선수를 찾을 수 없습니다.");
+  const ratingRaw = field(formData, "rating");
+  await prisma.appearance.upsert({
+    where: { matchRecordId_playerId: { matchRecordId, playerId } },
+    update: {
+      rating: ratingRaw ? Number(ratingRaw) : null,
+      cleanSheet: formData.get("cleanSheet") === "on",
+    },
+    create: {
+      matchRecordId,
+      playerId,
+      rating: ratingRaw ? Number(ratingRaw) : null,
+      cleanSheet: formData.get("cleanSheet") === "on",
+    },
+  });
+  revalidatePath(`/teams/${teamId}/players`);
+}
+
 // ---------- 구장 예약 ----------
 
 export async function createReservation(prevState: { error?: string }, formData: FormData) {

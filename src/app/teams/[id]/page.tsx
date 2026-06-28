@@ -39,13 +39,18 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
         </div>
         <div className="flex items-start justify-between">
           <h1 className="text-xl font-bold">{team.name}</h1>
-          {user && !isOwner && (
-            <form action={(isMember ? leaveTeam : joinTeam).bind(null, team.id)}>
-              <button className={isMember ? "btn-secondary !py-1.5 text-xs" : "btn-primary !py-1.5 text-xs"}>
-                {isMember ? "팀 탈퇴" : "팀 가입"}
-              </button>
-            </form>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            <Link href={`/teams/${team.id}/players`} className="btn-secondary !py-1.5 text-xs">
+              선수 관리 / 랭킹
+            </Link>
+            {user && !isOwner && (
+              <form action={(isMember ? leaveTeam : joinTeam).bind(null, team.id)}>
+                <button className={isMember ? "btn-secondary !py-1.5 text-xs" : "btn-primary !py-1.5 text-xs"}>
+                  {isMember ? "팀 탈퇴" : "팀 가입"}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
         {team.description && <p className="mt-2 text-sm text-gray-700">{team.description}</p>}
         <div className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-gray-50 p-4 text-center">

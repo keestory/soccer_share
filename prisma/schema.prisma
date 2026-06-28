@@ -42,6 +42,7 @@ model Team {
   members    TeamMember[]
   records    MatchRecord[]
   matchPosts MatchPost[]
+  players    Player[]
 }
 
 model TeamMember {
@@ -66,8 +67,56 @@ model MatchRecord {
   result       String // WIN / DRAW / LOSS
   scoreFor     Int
   scoreAgainst Int
+  quarters     Int      @default(4) // 경기 쿼터 수
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  events      PlayerEvent[]
+  appearances Appearance[]
+}
+
+// 팀 로스터에 등록된 선수 (앱 회원과 별개로 주장이 관리)
+model Player {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  position  String // GK / DF / MF / FW
+  number    Int?
+  userId    String? // 앱 회원과 연결 시 (선택)
+  createdAt DateTime @default(now())
+
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  events      PlayerEvent[]
+  appearances Appearance[]
+}
+
+// 골/도움 등 쿼터 단위로 발생한 개인 기록 이벤트
+model PlayerEvent {
+  id            String @id @default(cuid())
+  matchRecordId String
+  playerId      String
+  type          String // GOAL(골) / ASSIST(도움)
+  quarter       Int    @default(1)
+
+  matchRecord MatchRecord @relation(fields: [matchRecordId], references: [id], onDelete: Cascade)
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([matchRecordId])
+}
+
+// 경기 단위 개인 기록 (출전/평점/클린시트)
+model Appearance {
+  id            String  @id @default(cuid())
+  matchRecordId String
+  playerId      String
+  rating        Float? // 경기 평점 (0~10)
+  cleanSheet    Boolean @default(false)
+
+  matchRecord MatchRecord @relation(fields: [matchRecordId], references: [id], onDelete: Cascade)
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchRecordId, playerId])
+  @@index([playerId])
 }
 
 // 1. 상대팀을 찾는 매치 게시글

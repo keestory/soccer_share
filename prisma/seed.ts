@@ -17,6 +17,9 @@ function dateAfter(days: number): string {
 async function main() {
   await prisma.comment.deleteMany();
   await prisma.reservation.deleteMany();
+  await prisma.playerEvent.deleteMany();
+  await prisma.appearance.deleteMany();
+  await prisma.player.deleteMany();
   await prisma.matchRecord.deleteMany();
   await prisma.matchPost.deleteMany();
   await prisma.transferPost.deleteMany();
@@ -253,6 +256,56 @@ async function main() {
   await prisma.reservation.create({
     data: { venueId: venues[0].id, userId: u1.id, date: dateAfter(4), startHour: 18, endHour: 20 },
   });
+
+  // ----- 선수 로스터 + 골/도움/평점/출석/클린시트 기록 (하하하FC) -----
+  const team1Records = await prisma.matchRecord.findMany({
+    where: { teamId: team1.id },
+    orderBy: { playedAt: "asc" },
+  });
+
+  // 선수별: 이름, 포지션, 등번호, 골, 도움, 클린시트(횟수)
+  const roster: [string, string, number, number, number, number][] = [
+    ["최현규", "FW", 9, 13, 4, 0],
+    ["서은광", "FW", 11, 7, 3, 0],
+    ["가오가이", "FW", 7, 7, 1, 0],
+    ["송승혁", "FW", 10, 6, 2, 0],
+    ["이무창", "MF", 8, 6, 5, 0],
+    ["허창우", "DF", 4, 4, 2, 1],
+    ["최민혁", "MF", 6, 4, 6, 0],
+    ["김민수", "MF", 14, 3, 2, 0],
+    ["유재영", "DF", 3, 2, 1, 2],
+    ["박지훈", "GK", 1, 0, 0, 2],
+  ];
+
+  for (const [name, position, number, goals, assists, cleanSheets] of roster) {
+    const player = await prisma.player.create({
+      data: { teamId: team1.id, name, position, number },
+    });
+
+    // 골/도움 이벤트를 경기·쿼터에 분산 배치
+    const events: { matchRecordId: string; playerId: string; type: string; quarter: number }[] = [];
+    for (let g = 0; g < goals; g++) {
+      const rec = team1Records[g % team1Records.length];
+      events.push({ matchRecordId: rec.id, playerId: player.id, type: "GOAL", quarter: (g % 4) + 1 });
+    }
+    for (let a = 0; a < assists; a++) {
+      const rec = team1Records[a % team1Records.length];
+      events.push({ matchRecordId: rec.id, playerId: player.id, type: "ASSIST", quarter: (a % 4) + 1 });
+    }
+    if (events.length) await prisma.playerEvent.createMany({ data: events });
+
+    // 모든 경기 출전 + 평점 + 클린시트
+    for (let i = 0; i < team1Records.length; i++) {
+      await prisma.appearance.create({
+        data: {
+          matchRecordId: team1Records[i].id,
+          playerId: player.id,
+          rating: Math.round((6.5 + ((goals + assists + i) % 7) * 0.4) * 10) / 10,
+          cleanSheet: i < cleanSheets,
+        },
+      });
+    }
+  }
 
   console.log("✅ 시드 데이터 생성 완료");
   console.log("   데모 계정: demo@soccershare.kr / test1234");

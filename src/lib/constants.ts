@@ -46,3 +46,42 @@ export function formatDate(date: string) {
 export function formatPrice(price: number) {
   return price.toLocaleString("ko-KR") + "원";
 }
+
+// 로스터 선수 포지션 (코드값 저장, 한글/색상 표시)
+export const PLAYER_POSITIONS = [
+  { code: "FW", label: "공격수", color: "red" },
+  { code: "MF", label: "미드필더", color: "green" },
+  { code: "DF", label: "수비수", color: "blue" },
+  { code: "GK", label: "골키퍼", color: "orange" },
+] as const;
+
+const POSITION_MAP = Object.fromEntries(PLAYER_POSITIONS.map((p) => [p.code, p]));
+
+export function positionLabel(code: string) {
+  return POSITION_MAP[code]?.label ?? code;
+}
+
+export function positionDot(code: string) {
+  const colors: Record<string, string> = {
+    red: "bg-red-500",
+    green: "bg-pitch-500",
+    blue: "bg-blue-500",
+    orange: "bg-orange-500",
+  };
+  return colors[POSITION_MAP[code]?.color ?? ""] ?? "bg-gray-400";
+}
+
+// 랭킹 카테고리
+export type RankingKey = "goals" | "assists" | "rating" | "attendance" | "cleanSheet";
+
+export const RANKING_CATEGORIES: { key: RankingKey; label: string; unit: string }[] = [
+  { key: "goals", label: "골", unit: "골" },
+  { key: "assists", label: "도움", unit: "도움" },
+  { key: "rating", label: "평점", unit: "점" },
+  { key: "attendance", label: "출석", unit: "회" },
+  { key: "cleanSheet", label: "클린시트", unit: "회" },
+];
+
+export function formatPlayedAt(date: Date) {
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
+}
