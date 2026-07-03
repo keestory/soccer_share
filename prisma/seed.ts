@@ -15,6 +15,8 @@ function dateAfter(days: number): string {
 }
 
 async function main() {
+  await prisma.gameParticipant.deleteMany();
+  await prisma.pickupGame.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.reservation.deleteMany();
   await prisma.playerEvent.deleteMany();
@@ -306,6 +308,47 @@ async function main() {
       });
     }
   }
+
+  // ----- 픽업 게임 (정원·참가비·성사) -----
+  const g1 = await prisma.pickupGame.create({
+    data: {
+      title: "토요일 아침 풋살, 두 자리 남았어요",
+      region: "서울 노원구",
+      venue: "초안산 풋살파크",
+      matchDate: dateAfter(3),
+      startTime: "08:00",
+      endTime: "10:00",
+      format: "풋살(5vs5)",
+      capacity: 10,
+      minToConfirm: 8,
+      feePerHead: 8000,
+      currency: "KRW",
+      hostId: u1.id,
+    },
+  });
+  // 8명 참가 → 최소 인원(8) 달성으로 성사
+  await prisma.gameParticipant.createMany({
+    data: [u1.id, u2.id, u3.id, u4.id].map((userId) => ({ gameId: g1.id, userId })),
+  });
+  await prisma.pickupGame.update({ where: { id: g1.id }, data: { status: "OPEN" } });
+
+  await prisma.pickupGame.create({
+    data: {
+      title: "Sunday 5-a-side at the park — join in!",
+      region: "서울 광진구",
+      venue: "어린이대공원축구장",
+      matchDate: dateAfter(5),
+      startTime: "18:00",
+      endTime: "19:30",
+      format: "5-a-side",
+      capacity: 10,
+      minToConfirm: 6,
+      feePerHead: 6,
+      currency: "AUD",
+      hostId: u3.id,
+      participants: { create: { userId: u3.id } },
+    },
+  });
 
   console.log("✅ 시드 데이터 생성 완료");
   console.log("   데모 계정: demo@soccershare.kr / test1234");

@@ -26,6 +26,8 @@ model User {
   mercenaryPosts MercenaryPost[]
   comments       Comment[]
   reservations   Reservation[]
+  hostedGames    PickupGame[]
+  gameJoins      GameParticipant[]
 }
 
 // 팀 — 전적(MatchRecord)과 멤버 이력으로 팀의 활동/실력을 보여준다
@@ -207,6 +209,41 @@ model Reservation {
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 픽업 게임 — "정원 있는 게임"에 참가/결제하는 모델 (P0: 매칭 + 인앱 경기당 결제)
+model PickupGame {
+  id           String   @id @default(cuid())
+  title        String
+  region       String
+  venue        String
+  matchDate    String // YYYY-MM-DD
+  startTime    String // HH:mm
+  endTime      String // HH:mm
+  format       String // 5-a-side / 7인제 / 11vs11 / 풋살
+  capacity     Int // 총 정원
+  minToConfirm Int // 정원 확정 임계치 (이 인원 이상이면 CONFIRMED)
+  feePerHead   Int // 1인 참가비
+  currency     String   @default("KRW") // KRW / USD / GBP / AUD
+  status       String   @default("OPEN") // OPEN / CONFIRMED / CLOSED / CANCELLED
+  hostId       String
+  createdAt    DateTime @default(now())
+
+  host         User              @relation(fields: [hostId], references: [id])
+  participants GameParticipant[]
+}
+
+model GameParticipant {
+  id            String   @id @default(cuid())
+  gameId        String
+  userId        String
+  paymentStatus String   @default("PENDING") // PENDING / PAID / REFUNDED (실결제 연동 전 placeholder)
+  joinedAt      DateTime @default(now())
+
+  game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
 }
 
 // 게시글 공통 댓글 (postType + postId 로 연결)

@@ -295,6 +295,86 @@ export async function recordAppearance(formData: FormData) {
   revalidatePath(`/teams/${teamId}/players`);
 }
 
+// ---------- 픽업 게임 (매칭 + 경기당 결제 · 정원 확정) ----------
+
+export async function createPickupGame(formData: FormData) {
+  const user = await requireUser();
+  const capacity = Math.max(2, Number(formData.get("capacity") ?? 10));
+  const minToConfirmRaw = Number(formData.get("minToConfirm") ?? Math.ceil(capacity / 2));
+  const minToConfirm = Math.min(capacity, Math.max(2, minToConfirmRaw));
+  const game = await prisma.pickupGame.create({
+    data: {
+      title: field(formData, "title"),
+      region: field(formData, "region"),
+      venue: field(formData, "venue"),
+      matchDate: field(formData, "matchDate"),
+      startTime: field(formData, "startTime"),
+      endTime: field(formData, "endTime"),
+      format: field(formData, "format"),
+      capacity,
+      minToConfirm,
+      feePerHead: Math.max(0, Number(formData.get("feePerHead") ?? 0)),
+      currency: field(formData, "currency") || "KRW",
+      hostId: user.id,
+      // 주최자는 자동 참가
+      participants: { create: { userId: user.id } },
+    },
+  });
+  redirect(`/games/${game.id}`);
+}
+
+// 정원/임계치에 따라 게임 상태를 재계산
+async function recomputeGameStatus(gameId: string) {
+  const game = await prisma.pickupGame.findUnique({
+    where: { id: gameId },
+    include: { _count: { select: { participants: true } } },
+  });
+  if (!game || game.status === "CLOSED" || game.status === "CANCELLED") return;
+  const count = game._count.participants;
+  const next = count >= game.minToConfirm ? "CONFIRMED" : "OPEN";
+  if (next !== game.status) {
+    await prisma.pickupGame.update({ where: { id: gameId }, data: { status: next } });
+  }
+}
+
+export async function joinGame(gameId: string) {
+  const user = await requireUser();
+  const game = await prisma.pickupGame.findUnique({
+    where: { id: gameId },
+    include: { _count: { select: { participants: true } } },
+  });
+  if (!game) throw new Error("게임을 찾을 수 없습니다.");
+  if (game.status === "CLOSED" || game.status === "CANCELLED") throw new Error("마감된 게임입니다.");
+  if (game._count.participants >= game.capacity) throw new Error("정원이 찼습니다.");
+  // 정원 미달 시 미과금: 확정(CONFIRMED) 전에는 결제 PENDING, 확정 시점에 PAID 대상
+  await prisma.gameParticipant.upsert({
+    where: { gameId_userId: { gameId, userId: user.id } },
+    update: {},
+    create: { gameId, userId: user.id },
+  });
+  await recomputeGameStatus(gameId);
+  revalidatePath(`/games/${gameId}`);
+  revalidatePath("/games");
+}
+
+export async function leaveGame(gameId: string) {
+  const user = await requireUser();
+  const game = await prisma.pickupGame.findUnique({ where: { id: gameId } });
+  if (!game) return;
+  if (game.hostId === user.id) throw new Error("주최자는 취소할 수 없습니다. 게임을 마감/취소해주세요.");
+  await prisma.gameParticipant.deleteMany({ where: { gameId, userId: user.id } });
+  await recomputeGameStatus(gameId);
+  revalidatePath(`/games/${gameId}`);
+  revalidatePath("/games");
+}
+
+export async function updateGameStatus(gameId: string, status: string) {
+  const user = await requireUser();
+  await prisma.pickupGame.updateMany({ where: { id: gameId, hostId: user.id }, data: { status } });
+  revalidatePath(`/games/${gameId}`);
+  revalidatePath("/games");
+}
+
 // ---------- 구장 예약 ----------
 
 export async function createReservation(prevState: { error?: string }, formData: FormData) {

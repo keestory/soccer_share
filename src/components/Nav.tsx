@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 
 const menu = [
+  { href: "/games", label: "픽업게임" },
   { href: "/matches", label: "매치찾기" },
   { href: "/transfers", label: "구장양도" },
   { href: "/mercenaries", label: "용병" },
