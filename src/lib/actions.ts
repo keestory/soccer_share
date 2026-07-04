@@ -49,6 +49,21 @@ export async function markNotificationsRead() {
   revalidatePath("/", "layout");
 }
 
+// 지역 새 게임 알림 구독 토글
+export async function toggleRegionSubscription(region: string) {
+  const user = await requireUser();
+  if (!region) return;
+  const existing = await prisma.regionSubscription.findUnique({
+    where: { userId_region: { userId: user.id, region } },
+  });
+  if (existing) {
+    await prisma.regionSubscription.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.regionSubscription.create({ data: { userId: user.id, region } });
+  }
+  revalidatePath("/games");
+}
+
 // ---------- 언어 설정 ----------
 
 export async function setLocale(locale: string) {
@@ -411,6 +426,14 @@ export async function createPickupGame(formData: FormData) {
       participants: { create: { userId: user.id } },
     },
   });
+  // 이 지역 알림 구독자에게 새 게임 알림 (주최자 제외) — 콜드스타트 복귀 트리거
+  const subs = await prisma.regionSubscription.findMany({
+    where: { region: game.region, userId: { not: user.id } },
+    select: { userId: true },
+  });
+  await notify(
+    subs.map((s) => ({ userId: s.userId, type: "GAME_NEW", title: game.title, link: `/games/${game.id}` })),
+  );
   redirect(`/games/${game.id}`);
 }
 

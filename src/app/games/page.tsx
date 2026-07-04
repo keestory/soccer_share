@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { toggleRegionSubscription } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import RegionFilter from "@/components/RegionFilter";
 import { formatDate } from "@/lib/constants";
@@ -24,6 +26,15 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
     include: { _count: { select: { participants: true } }, host: { select: { nickname: true } } },
   });
 
+  // 지역 필터가 켜져 있고 로그인 상태면 "이 지역 새 게임 알림" 구독 토글 노출
+  const user = await getCurrentUser();
+  const subscribed =
+    user && region
+      ? !!(await prisma.regionSubscription.findUnique({
+          where: { userId_region: { userId: user.id, region } },
+        }))
+      : false;
+
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
@@ -34,6 +45,17 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
       </div>
       <p className="mb-4 text-sm text-gray-400">{t.subtitle}</p>
       <RegionFilter basePath="/games" current={region} allLabel={d.common.regionAll} />
+      {user && region && (
+        <form action={toggleRegionSubscription.bind(null, region)} className="mb-4">
+          <button
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              subscribed ? "bg-pitch-100 text-pitch-700" : "border border-gray-200 bg-white text-gray-600 hover:border-pitch-500"
+            }`}
+          >
+            {subscribed ? t.subscribed : t.subscribe}
+          </button>
+        </form>
+      )}
       <ul className="space-y-2">
         {games.map((g) => {
           const filled = g._count.participants;

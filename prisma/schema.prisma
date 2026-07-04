@@ -30,6 +30,20 @@ model User {
   gameJoins      GameParticipant[]
   rosterEntries  Player[]
   notifications  Notification[]
+  regionSubs     RegionSubscription[]
+}
+
+// 지역 새 게임 알림 구독 — 콜드스타트: 수요를 모아 공급(새 게임) 발생 시 복귀 유도
+model RegionSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  region    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, region])
+  @@index([region])
 }
 
 // 인앱 알림 (성사·참가·댓글 등) — 매칭 앱의 리텐션 복귀 트리거
