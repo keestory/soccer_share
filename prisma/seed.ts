@@ -16,6 +16,7 @@ function dateAfter(days: number): string {
 
 async function main() {
   await prisma.notification.deleteMany();
+  await prisma.gameVote.deleteMany();
   await prisma.gameParticipant.deleteMany();
   await prisma.pickupGame.deleteMany();
   await prisma.comment.deleteMany();
@@ -340,6 +341,14 @@ async function main() {
     ],
   });
   await prisma.pickupGame.update({ where: { id: g1.id }, data: { status: "CONFIRMED" } });
+  // MVP 투표 시연: 3명이 u1에게 투표 → u1 MVP (createMany에서 이미 mvp:true)
+  await prisma.gameVote.createMany({
+    data: [
+      { gameId: g1.id, voterId: u2.id, targetId: u1.id },
+      { gameId: g1.id, voterId: u3.id, targetId: u1.id },
+      { gameId: g1.id, voterId: u4.id, targetId: u1.id },
+    ],
+  });
 
   await prisma.pickupGame.create({
     data: {

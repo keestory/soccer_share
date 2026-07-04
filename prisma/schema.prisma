@@ -267,8 +267,23 @@ model PickupGame {
 
   host         User              @relation(fields: [hostId], references: [id])
   participants GameParticipant[]
+  votes        GameVote[]
 
   @@index([status])
+}
+
+// MVP 참가자 투표 (주최자 지정 대신) — 게임당 1인 1표
+model GameVote {
+  id        String   @id @default(cuid())
+  gameId    String
+  voterId   String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, voterId])
+  @@index([gameId])
 }
 
 model GameParticipant {

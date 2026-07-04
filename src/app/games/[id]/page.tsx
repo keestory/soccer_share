@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { joinGame, leaveGame, recordGameStats, updateGameStatus } from "@/lib/actions";
+import { joinGame, leaveGame, recordGameStats, updateGameStatus, voteMvp } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import { formatDate } from "@/lib/constants";
 import { getDict } from "@/lib/locale";
@@ -20,6 +20,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         include: { user: { select: { id: true, nickname: true } } },
         orderBy: { joinedAt: "asc" },
       },
+      votes: { select: { voterId: true, targetId: true } },
     },
   });
   if (!game) notFound();
@@ -27,6 +28,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const user = await getCurrentUser();
   const isHost = user?.id === game.hostId;
   const joined = !!user && game.participants.some((p) => p.userId === user.id);
+  // MVP 투표 집계
+  const voteCount = new Map<string, number>();
+  game.votes.forEach((v) => voteCount.set(v.targetId, (voteCount.get(v.targetId) ?? 0) + 1));
+  const myVote = user ? game.votes.find((v) => v.voterId === user.id)?.targetId : undefined;
+  const canVote = joined && (game.status === "CONFIRMED" || game.status === "CLOSED");
   const filled = game.participants.length;
   const pct = Math.min(100, Math.round((filled / game.capacity) * 100));
   const spotsLeft = game.capacity - filled;
@@ -159,7 +165,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <span className="flex-1">{/* name */}</span>
             <span className="w-14 text-center">{t.goals}</span>
             <span className="w-14 text-center">{t.assists}</span>
-            <span className="w-10 text-center">{t.mvp}</span>
           </div>
           <div className="space-y-2">
             {game.participants.map((p) => (
@@ -181,14 +186,43 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                   aria-label={`${p.user.nickname} — ${t.assists}`}
                   className="input w-14 !px-2 !py-1 text-center"
                 />
-                <span className="flex w-10 justify-center">
-                  <input type="radio" name="mvp" value={p.id} defaultChecked={p.mvp} aria-label={`${p.user.nickname} — ${t.mvp}`} />
-                </span>
               </div>
             ))}
           </div>
           <button className="btn-primary mt-3 w-full">{t.saveStats}</button>
         </form>
+      )}
+
+      {/* MVP 참가자 투표 (성사/마감 게임, 참가자만) */}
+      {canVote && (
+        <section className="card mt-4">
+          <h2 className="text-sm font-bold text-gray-700">{t.voteTitle}</h2>
+          <p className="mb-3 mt-0.5 text-xs text-gray-400">{t.voteHint}</p>
+          <ul className="space-y-2">
+            {game.participants
+              .filter((p) => p.userId !== user!.id)
+              .map((p) => {
+                const votes = voteCount.get(p.userId) ?? 0;
+                const mine = myVote === p.userId;
+                return (
+                  <li key={p.id} className="flex items-center gap-2 text-sm">
+                    <span className="flex-1 truncate">{p.user.nickname}</span>
+                    {votes > 0 && <span className="text-xs text-gray-400">{t.votes(votes)}</span>}
+                    {p.mvp && <Badge color="orange">MVP</Badge>}
+                    <form action={voteMvp.bind(null, game.id, p.userId)}>
+                      <button
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          mine ? "bg-orange-100 text-orange-700" : "border border-gray-200 text-gray-600 hover:border-pitch-500"
+                        }`}
+                      >
+                        {mine ? t.voted : t.vote}
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
       )}
     </div>
   );

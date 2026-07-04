@@ -543,20 +543,52 @@ export async function recordGameStats(formData: FormData) {
     const n = Math.trunc(Number(formData.get(name)));
     return Number.isFinite(n) ? Math.min(99, Math.max(0, n)) : 0;
   };
+  // MVP는 참가자 투표로 결정되므로 여기선 골/도움만 입력
   await prisma.$transaction(
     game.participants.map((p) =>
       prisma.gameParticipant.update({
         where: { id: p.id },
-        data: {
-          goals: clamp(`goals_${p.id}`),
-          assists: clamp(`assists_${p.id}`),
-          mvp: formData.get(`mvp`) === p.id,
-        },
+        data: { goals: clamp(`goals_${p.id}`), assists: clamp(`assists_${p.id}`) },
       }),
     ),
   );
   revalidatePath(`/games/${gameId}`);
   // 참가자들의 선수 카드도 갱신
+  new Set(game.participants.map((p) => p.userId)).forEach((uid) => revalidatePath(`/players/${uid}`));
+}
+
+// MVP 참가자 투표 (게임당 1인 1표) — 최다 득표자를 MVP로 자동 반영
+export async function voteMvp(gameId: string, targetUserId: string) {
+  const user = await requireUser();
+  if (targetUserId === user.id) throw new Error("본인에게는 투표할 수 없습니다.");
+  const game = await prisma.pickupGame.findFirst({
+    where: { id: gameId, status: { in: ["CONFIRMED", "CLOSED"] } },
+    include: { participants: true },
+  });
+  if (!game) throw new Error("성사/마감된 게임에서만 투표할 수 있습니다.");
+  const isVoter = game.participants.some((p) => p.userId === user.id);
+  const isTarget = game.participants.some((p) => p.userId === targetUserId);
+  if (!isVoter || !isTarget) throw new Error("참가자만 참가자에게 투표할 수 있습니다.");
+
+  await prisma.gameVote.upsert({
+    where: { gameId_voterId: { gameId, voterId: user.id } },
+    update: { targetId: targetUserId },
+    create: { gameId, voterId: user.id, targetId: targetUserId },
+  });
+
+  // 집계 → 최다 득표자에게 mvp 플래그
+  const votes = await prisma.gameVote.findMany({ where: { gameId }, select: { targetId: true } });
+  const tally = new Map<string, number>();
+  votes.forEach((v) => tally.set(v.targetId, (tally.get(v.targetId) ?? 0) + 1));
+  let topUserId: string | null = null;
+  let top = 0;
+  for (const [uid, n] of tally) if (n > top) ((top = n), (topUserId = uid));
+  await prisma.$transaction(
+    game.participants.map((p) =>
+      prisma.gameParticipant.update({ where: { id: p.id }, data: { mvp: p.userId === topUserId } }),
+    ),
+  );
+  revalidatePath(`/games/${gameId}`);
   new Set(game.participants.map((p) => p.userId)).forEach((uid) => revalidatePath(`/players/${uid}`));
 }
 

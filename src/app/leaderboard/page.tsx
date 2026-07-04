@@ -10,27 +10,46 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const d = await getDict();
   const t = d.leaderboard;
 
-  // 성사/마감된 픽업 게임의 참가 기록을 유저별로 집계 → 전체 랭킹
-  const rows = await prisma.gameParticipant.findMany({
-    where: {
-      game: { status: { in: ["CONFIRMED", "CLOSED"] } },
-      ...(region ? { user: { region } } : {}),
-    },
-    include: { user: { select: { id: true, nickname: true, position: true } } },
-  });
+  // 픽업 참가 기록 + 팀 로스터(회원 연결) 기록을 유저별로 통합 집계 → 전체 랭킹
+  const [parts, rosterEvents, rosterApps] = await Promise.all([
+    prisma.gameParticipant.findMany({
+      where: { game: { status: { in: ["CONFIRMED", "CLOSED"] } }, ...(region ? { user: { region } } : {}) },
+      select: { userId: true, goals: true, assists: true, mvp: true },
+    }),
+    prisma.playerEvent.findMany({
+      where: { player: { userId: { not: null }, ...(region ? { user: { region } } : {}) } },
+      select: { type: true, player: { select: { userId: true } } },
+    }),
+    prisma.appearance.findMany({
+      where: { player: { userId: { not: null }, ...(region ? { user: { region } } : {}) } },
+      select: { player: { select: { userId: true } } },
+    }),
+  ]);
 
-  const byUser = new Map<string, RankedUser>();
-  for (const r of rows) {
-    const cur =
-      byUser.get(r.userId) ??
-      { id: r.user.id, nickname: r.user.nickname, position: r.user.position, goals: 0, assists: 0, mvp: 0, games: 0 };
-    cur.goals += r.goals;
-    cur.assists += r.assists;
-    cur.mvp += r.mvp ? 1 : 0;
-    cur.games += 1;
-    byUser.set(r.userId, cur);
-  }
-  const players = Array.from(byUser.values());
+  type Agg = { goals: number; assists: number; mvp: number; games: number };
+  const agg = new Map<string, Agg>();
+  const bump = (uid: string | null, fn: (a: Agg) => void) => {
+    if (!uid) return;
+    const cur = agg.get(uid) ?? { goals: 0, assists: 0, mvp: 0, games: 0 };
+    fn(cur);
+    agg.set(uid, cur);
+  };
+  parts.forEach((p) =>
+    bump(p.userId, (a) => {
+      a.goals += p.goals;
+      a.assists += p.assists;
+      a.mvp += p.mvp ? 1 : 0;
+      a.games += 1;
+    }),
+  );
+  rosterEvents.forEach((e) => bump(e.player.userId, (a) => (e.type === "GOAL" ? a.goals++ : a.assists++)));
+  rosterApps.forEach((ap) => bump(ap.player.userId, (a) => a.games++));
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: Array.from(agg.keys()) } },
+    select: { id: true, nickname: true, position: true },
+  });
+  const players: RankedUser[] = users.map((u) => ({ id: u.id, nickname: u.nickname, position: u.position, ...agg.get(u.id)! }));
 
   return (
     <div className="mx-auto max-w-2xl">
