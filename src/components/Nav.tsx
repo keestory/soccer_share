@@ -20,17 +20,17 @@ export default async function Nav() {
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
-        <Link href="/" className="text-lg font-extrabold text-pitch-600">
+        <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-extrabold text-pitch-600">
           ⚽ {t.brand}
         </Link>
-        <nav className="flex flex-1 gap-4 text-sm font-medium text-gray-600">
+        <nav className="hidden flex-1 gap-4 text-sm font-medium text-gray-600 md:flex">
           {menu.map((m) => (
             <Link key={m.href} href={m.href} className="hover:text-pitch-600">
               {m.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="ml-auto flex items-center gap-3 text-sm md:ml-0">
           <LocaleSwitcher current={locale} />
           {user ? (
             <>
@@ -46,10 +46,10 @@ export default async function Nav() {
             </>
           ) : (
             <>
-              <Link href="/login" className="text-gray-600 hover:text-pitch-600">
+              <Link href="/login" className="whitespace-nowrap text-gray-600 hover:text-pitch-600">
                 {t.nav.login}
               </Link>
-              <Link href="/signup" className="btn-primary !py-1.5">
+              <Link href="/signup" className="btn-primary !py-1.5 whitespace-nowrap">
                 {t.nav.signup}
               </Link>
             </>
