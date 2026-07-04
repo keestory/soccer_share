@@ -9,6 +9,7 @@ export default async function Nav() {
 
   const menu = [
     { href: "/games", label: t.nav.games },
+    { href: "/leaderboard", label: t.nav.leaderboard },
     { href: "/matches", label: t.nav.matches },
     { href: "/transfers", label: t.nav.transfers },
     { href: "/mercenaries", label: t.nav.mercenaries },

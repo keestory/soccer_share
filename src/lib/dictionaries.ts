@@ -13,6 +13,7 @@ const ko = {
   brand: "사커쉐어",
   nav: {
     games: "픽업게임",
+    leaderboard: "리더보드",
     matches: "매치찾기",
     transfers: "구장양도",
     mercenaries: "용병",
@@ -266,6 +267,15 @@ const ko = {
     noReservations: "예약 내역이 없습니다.",
     viewVenues: "구장 보러가기 →",
   },
+  leaderboard: {
+    title: "🏆 리더보드",
+    subtitle: "픽업 경기 결과로 집계된 전체 선수 랭킹",
+    goals: "골",
+    assists: "도움",
+    mvp: "MVP",
+    games: "출전",
+    empty: "아직 기록이 없습니다.",
+  },
   footer: "사커쉐어 — 아마추어 축구/풋살 커뮤니티",
 };
 
@@ -273,6 +283,7 @@ const en: typeof ko = {
   brand: "SoccerShare",
   nav: {
     games: "Pickup",
+    leaderboard: "Leaderboard",
     matches: "Matches",
     transfers: "Transfers",
     mercenaries: "Guests",
@@ -525,6 +536,15 @@ const en: typeof ko = {
     noReservations: "No bookings yet.",
     viewVenues: "Browse venues →",
   },
+  leaderboard: {
+    title: "🏆 Leaderboard",
+    subtitle: "Global player ranking from pickup game results",
+    goals: "Goals",
+    assists: "Assists",
+    mvp: "MVP",
+    games: "Played",
+    empty: "No records yet.",
+  },
   footer: "SoccerShare — amateur football/futsal community",
 };
 
@@ -532,6 +552,7 @@ const id: typeof ko = {
   brand: "SoccerShare",
   nav: {
     games: "Tanding",
+    leaderboard: "Peringkat",
     matches: "Cari lawan",
     transfers: "Transfer lapangan",
     mercenaries: "Pemain tamu",
@@ -783,6 +804,15 @@ const id: typeof ko = {
     cancel: "Batalkan",
     noReservations: "Belum ada booking.",
     viewVenues: "Lihat lapangan →",
+  },
+  leaderboard: {
+    title: "🏆 Papan peringkat",
+    subtitle: "Peringkat pemain global dari hasil tanding",
+    goals: "Gol",
+    assists: "Assist",
+    mvp: "MVP",
+    games: "Main",
+    empty: "Belum ada rekor.",
   },
   footer: "SoccerShare — komunitas sepak bola/futsal amatir",
 };
