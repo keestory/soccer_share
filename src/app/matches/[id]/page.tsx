@@ -5,12 +5,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { updateMatchStatus } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import CommentSection from "@/components/CommentSection";
-import { MATCH_STATUS_LABELS, formatDate } from "@/lib/constants";
+import { formatDate } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const t = (await getDict()).matches;
   const post = await prisma.matchPost.findUnique({
     where: { id },
     include: {
@@ -28,7 +30,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
     <div className="mx-auto max-w-2xl">
       <article className="card">
         <div className="mb-2 flex items-center gap-2">
-          <Badge color={statusColor(post.status)}>{MATCH_STATUS_LABELS[post.status]}</Badge>
+          <Badge color={statusColor(post.status)}>{t.status[post.status]}</Badge>
           <Badge>{post.region}</Badge>
           <Badge>{post.format}</Badge>
         </div>
@@ -45,18 +47,19 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
               </Link>
             </>
           )}
-          {" · "}조회 {post.views + 1}
+          {" · "}
+          {t.views(post.views + 1)}
         </p>
 
         <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-4 text-sm">
           <div>
-            <dt className="text-xs text-gray-400">일시</dt>
+            <dt className="text-xs text-gray-400">{t.dateTime}</dt>
             <dd className="font-semibold">
               {formatDate(post.matchDate)} {post.startTime}~{post.endTime}
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-gray-400">구장</dt>
+            <dt className="text-xs text-gray-400">{t.venue}</dt>
             <dd className="font-semibold">{post.venue}</dd>
           </div>
         </dl>
@@ -69,7 +72,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
               .filter((s) => s !== post.status)
               .map((s) => (
                 <form key={s} action={updateMatchStatus.bind(null, post.id, s)}>
-                  <button className="btn-secondary !py-1.5 text-xs">{MATCH_STATUS_LABELS[s]}(으)로 변경</button>
+                  <button className="btn-secondary !py-1.5 text-xs">{t.changeTo(t.status[s])}</button>
                 </form>
               ))}
           </div>
