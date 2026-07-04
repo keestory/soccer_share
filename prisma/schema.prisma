@@ -28,6 +28,24 @@ model User {
   reservations   Reservation[]
   hostedGames    PickupGame[]
   gameJoins      GameParticipant[]
+  rosterEntries  Player[]
+  notifications  Notification[]
+}
+
+// 인앱 알림 (성사·참가·댓글 등) — 매칭 앱의 리텐션 복귀 트리거
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String // 수신자
+  type      String // GAME_CONFIRMED / GAME_JOINED / GAME_CANCELLED / COMMENT
+  actor     String? // 행위자 닉네임
+  title     String? // 대상 제목 (게임/게시글)
+  link      String // 클릭 시 이동 경로
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }
 
 // 팀 — 전적(MatchRecord)과 멤버 이력으로 팀의 활동/실력을 보여준다
@@ -87,8 +105,11 @@ model Player {
   createdAt DateTime @default(now())
 
   team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   events      PlayerEvent[]
   appearances Appearance[]
+
+  @@index([userId])
 }
 
 // 골/도움 등 쿼터 단위로 발생한 개인 기록 이벤트

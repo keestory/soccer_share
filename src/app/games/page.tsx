@@ -11,9 +11,16 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
   const { region } = await searchParams;
   const d = await getDict();
   const t = d.games;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const games = await prisma.pickupGame.findMany({
-    where: region ? { region } : undefined,
-    orderBy: { createdAt: "desc" },
+    // 지난 경기·취소된 경기는 목록에서 제외, 임박한 경기 순으로 정렬
+    where: {
+      ...(region ? { region } : {}),
+      matchDate: { gte: today },
+      status: { not: "CANCELLED" },
+    },
+    orderBy: [{ matchDate: "asc" }, { startTime: "asc" }],
     include: { _count: { select: { participants: true } }, host: { select: { nickname: true } } },
   });
 

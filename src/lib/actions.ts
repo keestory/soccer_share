@@ -31,6 +31,24 @@ function isUniqueError(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
 }
 
+// ---------- 알림 ----------
+
+type NotifyInput = { userId: string; type: string; link: string; actor?: string; title?: string };
+
+async function notify(items: NotifyInput[]) {
+  const rows = items.filter((n) => n.userId);
+  if (!rows.length) return;
+  await prisma.notification.createMany({ data: rows });
+  new Set(rows.map((r) => r.userId)).forEach((uid) => revalidatePath("/", "layout"));
+}
+
+export async function markNotificationsRead() {
+  const user = await requireUser();
+  await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
+  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
+}
+
 // ---------- 언어 설정 ----------
 
 export async function setLocale(locale: string) {
@@ -204,17 +222,24 @@ export async function addComment(formData: FormData) {
   if (!(COMMENT_TYPES as readonly string[]).includes(rawType)) return;
   const postType = rawType as (typeof COMMENT_TYPES)[number];
 
-  // 대상 게시글이 실제로 존재하는지 확인 (고아 댓글 방지)
-  const exists =
+  // 대상 게시글이 실제로 존재하는지 확인 (고아 댓글 방지) + 작성자 파악(알림용)
+  const sel = { id: true, authorId: true, title: true } as const;
+  const post =
     postType === "MATCH"
-      ? await prisma.matchPost.findUnique({ where: { id: postId }, select: { id: true } })
+      ? await prisma.matchPost.findUnique({ where: { id: postId }, select: sel })
       : postType === "TRANSFER"
-        ? await prisma.transferPost.findUnique({ where: { id: postId }, select: { id: true } })
-        : await prisma.mercenaryPost.findUnique({ where: { id: postId }, select: { id: true } });
-  if (!exists) return;
+        ? await prisma.transferPost.findUnique({ where: { id: postId }, select: sel })
+        : await prisma.mercenaryPost.findUnique({ where: { id: postId }, select: sel });
+  if (!post) return;
 
   await prisma.comment.create({ data: { postType, postId, content, authorId: user.id } });
   const base = { MATCH: "matches", TRANSFER: "transfers", MERCENARY: "mercenaries" }[postType];
+  // 글쓴이에게 댓글 알림 (본인 제외)
+  if (post.authorId !== user.id) {
+    await notify([
+      { userId: post.authorId, type: "COMMENT", actor: user.nickname, title: post.title, link: `/${base}/${postId}` },
+    ]);
+  }
   revalidatePath(`/${base}/${postId}`);
 }
 
@@ -399,7 +424,7 @@ export async function joinGame(gameId: string) {
   const user = await requireUser();
   // 정원 확인 → 참가를 하나의 트랜잭션으로 처리해 동시 참가 시 정원 초과를 막는다.
   // (SQLite는 단일 writer라 트랜잭션이 직렬화됨; Postgres 전환 시 SELECT..FOR UPDATE/제약으로 강화)
-  await prisma.$transaction(async (tx) => {
+  const outcome = await prisma.$transaction(async (tx) => {
     const game = await tx.pickupGame.findUnique({
       where: { id: gameId },
       include: { _count: { select: { participants: true } } },
@@ -409,14 +434,33 @@ export async function joinGame(gameId: string) {
     const already = await tx.gameParticipant.findUnique({
       where: { gameId_userId: { gameId, userId: user.id } },
     });
-    if (already) return; // 이미 참가
+    if (already) return null; // 이미 참가
     if (game._count.participants >= game.capacity) throw new Error("정원이 찼습니다.");
     await tx.gameParticipant.create({ data: { gameId, userId: user.id } });
     const count = game._count.participants + 1;
-    if (count >= game.minToConfirm && game.status === "OPEN") {
+    const justConfirmed = count >= game.minToConfirm && game.status === "OPEN";
+    if (justConfirmed) {
       await tx.pickupGame.update({ where: { id: gameId }, data: { status: "CONFIRMED" } });
     }
+    return { game, justConfirmed };
   });
+
+  if (outcome) {
+    const { game, justConfirmed } = outcome;
+    // 주최자에게 참가 알림 (본인 제외)
+    if (game.hostId !== user.id) {
+      await notify([
+        { userId: game.hostId, type: "GAME_JOINED", actor: user.nickname, title: game.title, link: `/games/${gameId}` },
+      ]);
+    }
+    // 성사 순간 전 참가자에게 알림
+    if (justConfirmed) {
+      const parts = await prisma.gameParticipant.findMany({ where: { gameId }, select: { userId: true } });
+      await notify(
+        parts.map((p) => ({ userId: p.userId, type: "GAME_CONFIRMED", title: game.title, link: `/games/${gameId}` })),
+      );
+    }
+  }
   revalidatePath(`/games/${gameId}`);
   revalidatePath("/games");
 }
@@ -436,7 +480,17 @@ export async function updateGameStatus(gameId: string, status: string) {
   const user = await requireUser();
   // 주최자는 마감/취소만 할 수 있게 제한 (임의 상태·capacity 우회 방지)
   const next = oneOf(status, ["CLOSED", "CANCELLED"] as const, "CLOSED");
-  await prisma.pickupGame.updateMany({ where: { id: gameId, hostId: user.id }, data: { status: next } });
+  const game = await prisma.pickupGame.findFirst({ where: { id: gameId, hostId: user.id } });
+  if (!game) return;
+  await prisma.pickupGame.update({ where: { id: gameId }, data: { status: next } });
+  if (next === "CANCELLED") {
+    const parts = await prisma.gameParticipant.findMany({ where: { gameId }, select: { userId: true } });
+    await notify(
+      parts
+        .filter((p) => p.userId !== user.id)
+        .map((p) => ({ userId: p.userId, type: "GAME_CANCELLED", title: game.title, link: `/games/${gameId}` })),
+    );
+  }
   revalidatePath(`/games/${gameId}`);
   revalidatePath("/games");
 }

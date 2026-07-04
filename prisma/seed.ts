@@ -15,6 +15,7 @@ function dateAfter(days: number): string {
 }
 
 async function main() {
+  await prisma.notification.deleteMany();
   await prisma.gameParticipant.deleteMany();
   await prisma.pickupGame.deleteMany();
   await prisma.comment.deleteMany();
@@ -350,6 +351,14 @@ async function main() {
       hostId: u3.id,
       participants: { create: { userId: u3.id } },
     },
+  });
+
+  // 데모용 알림 (성사·참가·댓글)
+  await prisma.notification.createMany({
+    data: [
+      { userId: u1.id, type: "GAME_CONFIRMED", title: g1.title, link: `/games/${g1.id}`, read: false },
+      { userId: u1.id, type: "GAME_JOINED", actor: "쉐바ㅋㅋ", title: g1.title, link: `/games/${g1.id}`, read: false },
+    ],
   });
 
   console.log("✅ 시드 데이터 생성 완료");

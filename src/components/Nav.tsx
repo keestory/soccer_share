@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getDict, getLocale } from "@/lib/locale";
+import { prisma } from "@/lib/prisma";
 import { logout } from "@/lib/actions";
 import LocaleSwitcher from "./LocaleSwitcher";
 
 export default async function Nav() {
   const [user, t, locale] = await Promise.all([getCurrentUser(), getDict(), getLocale()]);
+  const unread = user
+    ? await prisma.notification.count({ where: { userId: user.id, read: false } })
+    : 0;
 
   const menu = [
     { href: "/games", label: t.nav.games },
@@ -34,7 +38,19 @@ export default async function Nav() {
           <LocaleSwitcher current={locale} />
           {user ? (
             <>
-              <Link href="/me/reservations" className="text-gray-500 hover:text-pitch-600">
+              <Link
+                href="/notifications"
+                className="relative text-gray-500 hover:text-pitch-600"
+                aria-label={t.nav.notifications}
+              >
+                🔔
+                {unread > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+              <Link href="/me/reservations" className="hidden text-gray-500 hover:text-pitch-600 sm:inline">
                 {t.nav.myReservations}
               </Link>
               <Link href={`/players/${user.id}`} className="font-semibold text-gray-800 hover:text-pitch-600">

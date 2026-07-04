@@ -9,13 +9,18 @@ import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
+function localYmd(d: Date): string {
+  // 로컬 시간 기준 YYYY-MM-DD (toISOString의 UTC 변환 off-by-one 방지)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function nextDays(count: number): string[] {
   const out: string[] = [];
   const today = new Date();
   for (let i = 0; i < count; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-    out.push(d.toISOString().slice(0, 10));
+    out.push(localYmd(d));
   }
   return out;
 }

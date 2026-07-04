@@ -24,6 +24,7 @@ const ko = {
     signup: "회원가입",
     logout: "로그아웃",
     more: "더보기",
+    notifications: "알림",
   },
   home: {
     heroTitle: "이번 주말, 같이 차실래요?",
@@ -314,6 +315,18 @@ const ko = {
       cleanSheet: { label: "클린시트", unit: "회" },
     },
   },
+  notif: {
+    title: "알림",
+    empty: "새 알림이 없습니다.",
+    markRead: "모두 읽음",
+    message: (type: string, actor: string, title: string) =>
+      ({
+        GAME_JOINED: `${actor}님이 "${title}"에 참가했어요`,
+        GAME_CONFIRMED: `"${title}" 게임이 성사됐어요 ⚽`,
+        GAME_CANCELLED: `"${title}" 게임이 취소됐어요`,
+        COMMENT: `${actor}님이 "${title}"에 댓글을 남겼어요`,
+      })[type] ?? title,
+  },
   footer: "사커쉐어 — 아마추어 축구/풋살 커뮤니티",
 };
 
@@ -332,6 +345,7 @@ const en: typeof ko = {
     signup: "Sign up",
     logout: "Log out",
     more: "More",
+    notifications: "Notifications",
   },
   home: {
     heroTitle: "Playing this weekend?",
@@ -621,6 +635,18 @@ const en: typeof ko = {
       cleanSheet: { label: "Clean sheets", unit: "" },
     },
   },
+  notif: {
+    title: "Notifications",
+    empty: "No notifications.",
+    markRead: "Mark all read",
+    message: (type: string, actor: string, title: string) =>
+      ({
+        GAME_JOINED: `${actor} joined "${title}"`,
+        GAME_CONFIRMED: `"${title}" is confirmed ⚽`,
+        GAME_CANCELLED: `"${title}" was cancelled`,
+        COMMENT: `${actor} commented on "${title}"`,
+      })[type] ?? title,
+  },
   footer: "SoccerShare — amateur football/futsal community",
 };
 
@@ -639,6 +665,7 @@ const id: typeof ko = {
     signup: "Daftar",
     logout: "Keluar",
     more: "Lainnya",
+    notifications: "Notifikasi",
   },
   home: {
     heroTitle: "Main bareng akhir pekan ini?",
@@ -927,6 +954,18 @@ const id: typeof ko = {
       attendance: { label: "Main", unit: "" },
       cleanSheet: { label: "Clean sheet", unit: "" },
     },
+  },
+  notif: {
+    title: "Notifikasi",
+    empty: "Belum ada notifikasi.",
+    markRead: "Tandai semua dibaca",
+    message: (type: string, actor: string, title: string) =>
+      ({
+        GAME_JOINED: `${actor} bergabung ke "${title}"`,
+        GAME_CONFIRMED: `"${title}" terkonfirmasi ⚽`,
+        GAME_CANCELLED: `"${title}" dibatalkan`,
+        COMMENT: `${actor} mengomentari "${title}"`,
+      })[type] ?? title,
   },
   footer: "SoccerShare — komunitas sepak bola/futsal amatir",
 };
