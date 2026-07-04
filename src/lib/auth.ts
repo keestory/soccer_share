@@ -4,7 +4,16 @@ import { cache } from "react";
 import { prisma } from "./prisma";
 
 const SESSION_COOKIE = "soccer_session";
-const secret = () => process.env.SESSION_SECRET ?? "dev-secret";
+const isProd = process.env.NODE_ENV === "production";
+
+function secret(): string {
+  const s = process.env.SESSION_SECRET;
+  // 운영에서 시크릿 미설정/기본값이면 세션 위조가 가능하므로 부팅을 실패시킨다.
+  if (isProd && (!s || s === "dev-secret" || s === "change-me" || s.startsWith("dev-only"))) {
+    throw new Error("SESSION_SECRET must be set to a strong secret in production.");
+  }
+  return s ?? "dev-secret";
+}
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -28,6 +37,7 @@ export async function createSession(userId: string) {
   store.set(SESSION_COOKIE, `${userId}.${sign(userId)}`, {
     httpOnly: true,
     sameSite: "lax",
+    secure: isProd,
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
@@ -45,7 +55,9 @@ export const getCurrentUser = cache(async () => {
   const dot = raw.lastIndexOf(".");
   if (dot < 0) return null;
   const userId = raw.slice(0, dot);
-  if (sign(userId) !== raw.slice(dot + 1)) return null;
+  const provided = Buffer.from(raw.slice(dot + 1));
+  const expected = Buffer.from(sign(userId));
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, nickname: true, email: true, position: true, level: true, region: true, bio: true },

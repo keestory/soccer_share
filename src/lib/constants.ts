@@ -12,29 +12,6 @@ export const POSITIONS = ["GK", "DF", "MF", "FW", "무관"] as const;
 
 export const FORMATS = ["11vs11", "9vs9", "8vs8", "풋살(5vs5)", "풋살(6vs6)"] as const;
 
-export const LEVEL_LABELS: Record<number, string> = {
-  1: "입문",
-  2: "초급",
-  3: "중급",
-  4: "상급",
-  5: "선출급",
-};
-
-export const MATCH_STATUS_LABELS: Record<string, string> = {
-  OPEN: "모집중",
-  MATCHED: "매치완료",
-  CLOSED: "마감",
-};
-
-export const POST_STATUS_LABELS: Record<string, string> = {
-  OPEN: "진행중",
-  DONE: "완료",
-};
-
-export function levelLabel(level: number) {
-  return LEVEL_LABELS[level] ?? `Lv.${level}`;
-}
-
 export function formatDate(date: string) {
   // YYYY-MM-DD -> M/D(요일)
   const d = new Date(`${date}T00:00:00`);
@@ -57,10 +34,6 @@ export const PLAYER_POSITIONS = [
 
 const POSITION_MAP = Object.fromEntries(PLAYER_POSITIONS.map((p) => [p.code, p]));
 
-export function positionLabel(code: string) {
-  return POSITION_MAP[code]?.label ?? code;
-}
-
 export function positionDot(code: string) {
   const colors: Record<string, string> = {
     red: "bg-red-500",
@@ -70,17 +43,6 @@ export function positionDot(code: string) {
   };
   return colors[POSITION_MAP[code]?.color ?? ""] ?? "bg-gray-400";
 }
-
-// 랭킹 카테고리
-export type RankingKey = "goals" | "assists" | "rating" | "attendance" | "cleanSheet";
-
-export const RANKING_CATEGORIES: { key: RankingKey; label: string; unit: string }[] = [
-  { key: "goals", label: "골", unit: "골" },
-  { key: "assists", label: "도움", unit: "도움" },
-  { key: "rating", label: "평점", unit: "점" },
-  { key: "attendance", label: "출석", unit: "회" },
-  { key: "cleanSheet", label: "클린시트", unit: "회" },
-];
 
 export function formatPlayedAt(date: Date) {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;

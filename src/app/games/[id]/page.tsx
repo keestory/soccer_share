@@ -170,6 +170,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                   type="number"
                   min={0}
                   defaultValue={p.goals}
+                  aria-label={`${p.user.nickname} — ${t.goals}`}
                   className="input w-14 !px-2 !py-1 text-center"
                 />
                 <input
@@ -177,10 +178,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                   type="number"
                   min={0}
                   defaultValue={p.assists}
+                  aria-label={`${p.user.nickname} — ${t.assists}`}
                   className="input w-14 !px-2 !py-1 text-center"
                 />
                 <span className="flex w-10 justify-center">
-                  <input type="radio" name="mvp" value={p.id} defaultChecked={p.mvp} />
+                  <input type="radio" name="mvp" value={p.id} defaultChecked={p.mvp} aria-label={`${p.user.nickname} — ${t.mvp}`} />
                 </span>
               </div>
             ))}

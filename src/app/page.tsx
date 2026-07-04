@@ -21,14 +21,15 @@ export default async function HomePage() {
       take: 3,
     }),
   ]);
-  const topScorers = (
-    await Promise.all(
-      gameStats.map(async (g) => {
-        const u = await prisma.user.findUnique({ where: { id: g.userId }, select: { id: true, nickname: true } });
-        return u ? { ...u, goals: g._sum.goals ?? 0 } : null;
-      }),
-    )
-  ).filter((x): x is { id: string; nickname: string; goals: number } => x !== null);
+  // 상위 득점자 유저를 한 번의 쿼리로 조회 (N+1 방지)
+  const scorerUsers = await prisma.user.findMany({
+    where: { id: { in: gameStats.map((g) => g.userId) } },
+    select: { id: true, nickname: true },
+  });
+  const nameById = new Map(scorerUsers.map((u) => [u.id, u.nickname]));
+  const topScorers = gameStats
+    .filter((g) => nameById.has(g.userId))
+    .map((g) => ({ id: g.userId, nickname: nameById.get(g.userId)!, goals: g._sum.goals ?? 0 }));
 
   return (
     <div className="space-y-8">

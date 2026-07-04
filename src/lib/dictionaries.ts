@@ -23,6 +23,7 @@ const ko = {
     login: "로그인",
     signup: "회원가입",
     logout: "로그아웃",
+    more: "더보기",
   },
   home: {
     heroTitle: "이번 주말, 같이 차실래요?",
@@ -283,6 +284,7 @@ const ko = {
     tabRoster: "명단",
     tabRanking: "🏆 랭킹",
     playerName: "선수 이름",
+    matchLabel: "경기",
     number: "등번호",
     add: "추가하기",
     del: "삭제",
@@ -329,6 +331,7 @@ const en: typeof ko = {
     login: "Log in",
     signup: "Sign up",
     logout: "Log out",
+    more: "More",
   },
   home: {
     heroTitle: "Playing this weekend?",
@@ -588,6 +591,7 @@ const en: typeof ko = {
     tabRoster: "Roster",
     tabRanking: "🏆 Ranking",
     playerName: "Player name",
+    matchLabel: "Match",
     number: "No.",
     add: "Add",
     del: "Remove",
@@ -634,6 +638,7 @@ const id: typeof ko = {
     login: "Masuk",
     signup: "Daftar",
     logout: "Keluar",
+    more: "Lainnya",
   },
   home: {
     heroTitle: "Main bareng akhir pekan ini?",
@@ -893,6 +898,7 @@ const id: typeof ko = {
     tabRoster: "Daftar",
     tabRanking: "🏆 Peringkat",
     playerName: "Nama pemain",
+    matchLabel: "Pertandingan",
     number: "No.",
     add: "Tambah",
     del: "Hapus",

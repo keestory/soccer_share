@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { getDict } from "@/lib/locale";
+import { getDict, getLocale } from "@/lib/locale";
 import { addComment } from "@/lib/actions";
 
+const LOCALE_TAG: Record<string, string> = { ko: "ko-KR", en: "en-US", id: "id-ID" };
+
 export default async function CommentSection({ postType, postId }: { postType: string; postId: string }) {
+  const locale = await getLocale();
   const t = (await getDict()).comments;
+  const tag = LOCALE_TAG[locale] ?? "en-US";
   const [comments, user] = await Promise.all([
     prisma.comment.findMany({
       where: { postType, postId },
@@ -25,7 +29,7 @@ export default async function CommentSection({ postType, postId }: { postType: s
               <Link href={`/players/${c.author.id}`} className="font-semibold text-gray-700 hover:text-pitch-600">
                 {c.author.nickname}
               </Link>
-              <span>{c.createdAt.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" })}</span>
+              <span>{c.createdAt.toLocaleString(tag, { dateStyle: "short", timeStyle: "short" })}</span>
             </div>
             <p className="whitespace-pre-wrap text-sm text-gray-800">{c.content}</p>
           </li>

@@ -209,6 +209,9 @@ model Reservation {
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, date])
+  @@index([userId])
 }
 
 // 픽업 게임 — "정원 있는 게임"에 참가/결제하는 모델 (P0: 매칭 + 인앱 경기당 결제)
@@ -229,6 +232,8 @@ model PickupGame {
 
   host         User              @relation(fields: [hostId], references: [id])
   participants GameParticipant[]
+
+  @@index([status])
 }
 
 model GameParticipant {
@@ -245,6 +250,7 @@ model GameParticipant {
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([gameId, userId])
+  @@index([userId])
 }
 
 // 게시글 공통 댓글 (postType + postId 로 연결)

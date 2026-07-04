@@ -111,7 +111,7 @@ function RosterTab({
           </div>
           {isOwner && (
             <form action={removePlayer.bind(null, teamId, p.id)}>
-              <button className="shrink-0 text-xs text-gray-300 hover:text-red-500">{t.del}</button>
+              <button className="shrink-0 text-xs font-medium text-gray-500 hover:text-red-600">{t.del}</button>
             </form>
           )}
         </div>
@@ -149,14 +149,14 @@ function StatForms({
       <form action={addPlayerEvent} className="card space-y-2">
         <p className="text-sm font-bold text-gray-700">{t.statGoalAssist}</p>
         <input type="hidden" name="teamId" value={teamId} />
-        <select name="playerId" className="input">
+        <select name="playerId" className="input" aria-label={t.playerName}>
           {players.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name} ({t.positions[p.position] ?? p.position})
             </option>
           ))}
         </select>
-        <select name="matchRecordId" className="input">
+        <select name="matchRecordId" className="input" aria-label={t.matchLabel}>
           {matches.map((m) => (
             <option key={m.id} value={m.id}>
               {m.label}
@@ -182,14 +182,14 @@ function StatForms({
       <form action={recordAppearance} className="card space-y-2">
         <p className="text-sm font-bold text-gray-700">{t.statAppearance}</p>
         <input type="hidden" name="teamId" value={teamId} />
-        <select name="playerId" className="input">
+        <select name="playerId" className="input" aria-label={t.playerName}>
           {players.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name} ({t.positions[p.position] ?? p.position})
             </option>
           ))}
         </select>
-        <select name="matchRecordId" className="input">
+        <select name="matchRecordId" className="input" aria-label={t.matchLabel}>
           {matches.map((m) => (
             <option key={m.id} value={m.id}>
               {m.label}
