@@ -309,7 +309,7 @@ async function main() {
     }
   }
 
-  // ----- 픽업 게임 (정원·참가비·성사) -----
+  // ----- 픽업 게임 (정원·성사, 무료 매칭) -----
   const g1 = await prisma.pickupGame.create({
     data: {
       title: "토요일 아침 풋살, 두 자리 남았어요",
@@ -321,8 +321,6 @@ async function main() {
       format: "풋살(5vs5)",
       capacity: 10,
       minToConfirm: 4,
-      feePerHead: 8000,
-      currency: "KRW",
       hostId: u1.id,
     },
   });
@@ -343,8 +341,6 @@ async function main() {
       format: "5-a-side",
       capacity: 10,
       minToConfirm: 6,
-      feePerHead: 6,
-      currency: "AUD",
       hostId: u3.id,
       participants: { create: { userId: u3.id } },
     },

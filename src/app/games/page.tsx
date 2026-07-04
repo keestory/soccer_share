@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
 import RegionFilter from "@/components/RegionFilter";
 import { formatDate } from "@/lib/constants";
-import { formatMoney, type CurrencyCode } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +29,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
           게임 열기
         </Link>
       </div>
-      <p className="mb-4 text-sm text-gray-400">최소 인원을 채우면 게임이 자동 성사됩니다 · 참가비는 현장에서 정산</p>
+      <p className="mb-4 text-sm text-gray-400">최소 인원을 채우면 게임이 자동으로 성사됩니다 · 무료 매칭</p>
       <RegionFilter basePath="/games" current={region} />
       <ul className="space-y-2">
         {games.map((g) => {
@@ -44,9 +43,6 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
                     {GAME_STATUS[g.status]}
                   </Badge>
                   <Badge>{g.format}</Badge>
-                  <span className="ml-auto text-sm font-bold text-pitch-700">
-                    {g.feePerHead > 0 ? formatMoney(g.feePerHead, g.currency as CurrencyCode) : "무료"}
-                  </span>
                 </div>
                 <p className="mt-1.5 truncate text-sm font-semibold">{g.title}</p>
                 <p className="mt-0.5 text-xs text-gray-400">

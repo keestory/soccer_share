@@ -322,8 +322,6 @@ export async function createPickupGame(formData: FormData) {
       format: field(formData, "format"),
       capacity,
       minToConfirm,
-      feePerHead: Math.max(0, Number(formData.get("feePerHead") ?? 0)),
-      currency: field(formData, "currency") || "KRW",
       hostId: user.id,
       // 주최자는 자동 참가
       participants: { create: { userId: user.id } },

@@ -223,8 +223,6 @@ model PickupGame {
   format       String // 5-a-side / 7인제 / 11vs11 / 풋살
   capacity     Int // 총 정원
   minToConfirm Int // 정원 확정 임계치 (이 인원 이상이면 CONFIRMED)
-  feePerHead   Int // 1인 참가비
-  currency     String   @default("KRW") // KRW / USD / GBP / AUD
   status       String   @default("OPEN") // OPEN / CONFIRMED / CLOSED / CANCELLED
   hostId       String
   createdAt    DateTime @default(now())

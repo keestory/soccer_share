@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { joinGame, leaveGame, updateGameStatus } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import { formatDate } from "@/lib/constants";
-import { formatMoney, type CurrencyCode } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +35,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const filled = game.participants.length;
   const pct = Math.min(100, Math.round((filled / game.capacity) * 100));
   const spotsLeft = game.capacity - filled;
-  const currency = game.currency as CurrencyCode;
   const active = game.status === "OPEN" || game.status === "CONFIRMED";
 
   return (
@@ -57,7 +55,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </Link>
         </p>
 
-        <dl className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-gray-50 p-4 text-sm">
+        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-4 text-sm">
           <div>
             <dt className="text-xs text-gray-400">일시</dt>
             <dd className="font-semibold">
@@ -67,12 +65,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           <div>
             <dt className="text-xs text-gray-400">구장</dt>
             <dd className="font-semibold">{game.venue}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-gray-400">1인 참가비</dt>
-            <dd className="font-bold text-pitch-700">
-              {game.feePerHead > 0 ? formatMoney(game.feePerHead, currency) : "무료"}
-            </dd>
           </div>
         </dl>
 
@@ -93,7 +85,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           {game.status === "CONFIRMED" && (
             <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
               ✅ 최소 인원을 채워 게임이 성사됐습니다.
-              {game.feePerHead > 0 && ` 참가비는 1인 ${formatMoney(game.feePerHead, currency)}(현장 정산).`}
             </p>
           )}
           {game.status === "OPEN" && (
@@ -117,9 +108,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 )
               ) : spotsLeft > 0 ? (
                 <form action={joinGame.bind(null, game.id)}>
-                  <button className="btn-primary w-full">
-                    참가하기{game.feePerHead > 0 ? ` · ${formatMoney(game.feePerHead, currency)}` : ""}
-                  </button>
+                  <button className="btn-primary w-full">참가하기</button>
                 </form>
               ) : (
                 <p className="text-center text-sm text-gray-400">정원이 찼습니다.</p>

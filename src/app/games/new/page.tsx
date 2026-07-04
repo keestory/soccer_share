@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createPickupGame } from "@/lib/actions";
 import { FORMATS, REGIONS } from "@/lib/constants";
-import { CURRENCIES } from "@/lib/i18n";
 
 export default async function NewGamePage() {
   const user = await getCurrentUser();
@@ -61,22 +60,6 @@ export default async function NewGamePage() {
           <div>
             <label className="label">성사 최소 인원 (명)</label>
             <input name="minToConfirm" type="number" min={2} defaultValue={6} className="input" required />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">1인 참가비</label>
-            <input name="feePerHead" type="number" min={0} step={1000} defaultValue={0} className="input" />
-          </div>
-          <div>
-            <label className="label">통화</label>
-            <select name="currency" className="input" defaultValue="KRW">
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
         <button className="btn-primary w-full">게임 열기 (내가 첫 참가자로 등록됩니다)</button>
