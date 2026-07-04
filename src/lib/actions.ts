@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "./prisma";
 import { createSession, destroySession, hashPassword, requireUser, verifyPassword } from "./auth";
-import { getPaymentProvider } from "./payments";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -305,7 +304,7 @@ export async function recordAppearance(formData: FormData) {
   revalidatePath(`/teams/${teamId}/players`);
 }
 
-// ---------- 픽업 게임 (매칭 + 경기당 결제 · 정원 확정) ----------
+// ---------- 픽업 게임 (매칭 · 정원 확정) ----------
 
 export async function createPickupGame(formData: FormData) {
   const user = await requireUser();
@@ -356,7 +355,6 @@ export async function joinGame(gameId: string) {
   if (!game) throw new Error("게임을 찾을 수 없습니다.");
   if (game.status === "CLOSED" || game.status === "CANCELLED") throw new Error("마감된 게임입니다.");
   if (game._count.participants >= game.capacity) throw new Error("정원이 찼습니다.");
-  // 정원 미달 시 미과금: 확정(CONFIRMED) 전에는 결제 PENDING, 확정 시점에 PAID 대상
   await prisma.gameParticipant.upsert({
     where: { gameId_userId: { gameId, userId: user.id } },
     update: {},
@@ -383,30 +381,6 @@ export async function updateGameStatus(gameId: string, status: string) {
   await prisma.pickupGame.updateMany({ where: { id: gameId, hostId: user.id }, data: { status } });
   revalidatePath(`/games/${gameId}`);
   revalidatePath("/games");
-}
-
-// 성사된 게임의 참가비 결제 시작 (no-confirm-no-charge: CONFIRMED 전에는 불가)
-export async function startGamePayment(gameId: string) {
-  const user = await requireUser();
-  const participant = await prisma.gameParticipant.findUnique({
-    where: { gameId_userId: { gameId, userId: user.id } },
-    include: { game: true },
-  });
-  if (!participant) throw new Error("이 게임의 참가자가 아닙니다.");
-  const { game } = participant;
-  if (game.status !== "CONFIRMED") throw new Error("게임이 성사된 뒤에 결제할 수 있습니다.");
-  if (game.feePerHead <= 0) throw new Error("참가비가 없는 게임입니다.");
-  if (participant.paymentStatus === "PAID") return;
-
-  const provider = getPaymentProvider();
-  const session = await provider.createCheckout({
-    participantId: participant.id,
-    gameId,
-    amount: game.feePerHead,
-    currency: game.currency,
-    description: `${game.title} 참가비`,
-  });
-  redirect(session.checkoutUrl);
 }
 
 // ---------- 구장 예약 ----------

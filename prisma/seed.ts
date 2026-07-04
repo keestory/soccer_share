@@ -326,7 +326,7 @@ async function main() {
       hostId: u1.id,
     },
   });
-  // 4명 참가 → 최소 인원(4) 달성으로 성사(CONFIRMED). 결제는 대기(PENDING) 상태로 데모.
+  // 4명 참가 → 최소 인원(4) 달성으로 게임 성사(CONFIRMED) 데모.
   await prisma.gameParticipant.createMany({
     data: [u1.id, u2.id, u3.id, u4.id].map((userId) => ({ gameId: g1.id, userId })),
   });

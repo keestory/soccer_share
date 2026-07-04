@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { joinGame, leaveGame, startGamePayment, updateGameStatus } from "@/lib/actions";
+import { joinGame, leaveGame, updateGameStatus } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import { formatDate } from "@/lib/constants";
 import { formatMoney, type CurrencyCode } from "@/lib/i18n";
@@ -32,10 +32,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const user = await getCurrentUser();
   const isHost = user?.id === game.hostId;
-  const myParticipant = user ? game.participants.find((p) => p.userId === user.id) : undefined;
-  const joined = !!myParticipant;
-  const needsPayment =
-    game.status === "CONFIRMED" && game.feePerHead > 0 && myParticipant?.paymentStatus === "PENDING";
+  const joined = !!user && game.participants.some((p) => p.userId === user.id);
   const filled = game.participants.length;
   const pct = Math.min(100, Math.round((filled / game.capacity) * 100));
   const spotsLeft = game.capacity - filled;
@@ -95,25 +92,13 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </div>
           {game.status === "CONFIRMED" && (
             <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
-              ✅ 최소 인원을 채워 게임이 성사됐습니다. 참가비 결제는 성사된 참가자 대상입니다.
-              {game.feePerHead > 0 && ` (1인 ${formatMoney(game.feePerHead, currency)})`}
+              ✅ 최소 인원을 채워 게임이 성사됐습니다.
+              {game.feePerHead > 0 && ` 참가비는 1인 ${formatMoney(game.feePerHead, currency)}(현장 정산).`}
             </p>
           )}
           {game.status === "OPEN" && (
             <p className="mt-2 text-xs text-gray-400">
-              최소 인원({game.minToConfirm}명) 미달 상태로, 아직 결제되지 않습니다(no-confirm-no-charge).
-            </p>
-          )}
-          {needsPayment && (
-            <form action={startGamePayment.bind(null, game.id)} className="mt-3">
-              <button className="btn-primary w-full">
-                참가비 결제하기 · {formatMoney(game.feePerHead, currency)}
-              </button>
-            </form>
-          )}
-          {joined && game.status === "CONFIRMED" && myParticipant?.paymentStatus === "PAID" && (
-            <p className="mt-3 rounded-lg bg-pitch-50 px-3 py-2 text-xs font-semibold text-pitch-700">
-              ✅ 결제 완료 — 참가가 확정됐습니다.
+              최소 인원({game.minToConfirm}명)을 채우면 게임이 성사됩니다.
             </p>
           )}
         </div>
@@ -173,11 +158,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 {p.user.nickname}
               </Link>
               {p.userId === game.hostId && <Badge color="orange">주최</Badge>}
-              {game.feePerHead > 0 && (
-                <span className="ml-auto text-xs text-gray-400">
-                  {p.paymentStatus === "PAID" ? "결제완료" : "결제대기"}
-                </span>
-              )}
             </li>
           ))}
         </ul>

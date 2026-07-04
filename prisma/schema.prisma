@@ -234,11 +234,10 @@ model PickupGame {
 }
 
 model GameParticipant {
-  id            String   @id @default(cuid())
-  gameId        String
-  userId        String
-  paymentStatus String   @default("PENDING") // PENDING / PAID / REFUNDED (실결제 연동 전 placeholder)
-  joinedAt      DateTime @default(now())
+  id       String   @id @default(cuid())
+  gameId   String
+  userId   String
+  joinedAt DateTime @default(now())
 
   game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -30,7 +30,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
           게임 열기
         </Link>
       </div>
-      <p className="mb-4 text-sm text-gray-400">정원을 채우면 자동 성사 · 인원 미달 시 미과금(참가비 결제는 성사 시점)</p>
+      <p className="mb-4 text-sm text-gray-400">최소 인원을 채우면 게임이 자동 성사됩니다 · 참가비는 현장에서 정산</p>
       <RegionFilter basePath="/games" current={region} />
       <ul className="space-y-2">
         {games.map((g) => {
