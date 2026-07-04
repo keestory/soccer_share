@@ -1,24 +1,26 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { getDict, getLocale } from "@/lib/locale";
 import { logout } from "@/lib/actions";
-
-const menu = [
-  { href: "/games", label: "픽업게임" },
-  { href: "/matches", label: "매치찾기" },
-  { href: "/transfers", label: "구장양도" },
-  { href: "/mercenaries", label: "용병" },
-  { href: "/venues", label: "구장예약" },
-  { href: "/teams", label: "팀" },
-];
+import LocaleSwitcher from "./LocaleSwitcher";
 
 export default async function Nav() {
-  const user = await getCurrentUser();
+  const [user, t, locale] = await Promise.all([getCurrentUser(), getDict(), getLocale()]);
+
+  const menu = [
+    { href: "/games", label: t.nav.games },
+    { href: "/matches", label: t.nav.matches },
+    { href: "/transfers", label: t.nav.transfers },
+    { href: "/mercenaries", label: t.nav.mercenaries },
+    { href: "/venues", label: t.nav.venues },
+    { href: "/teams", label: t.nav.teams },
+  ];
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
         <Link href="/" className="text-lg font-extrabold text-pitch-600">
-          ⚽ 사커쉐어
+          ⚽ {t.brand}
         </Link>
         <nav className="flex flex-1 gap-4 text-sm font-medium text-gray-600">
           {menu.map((m) => (
@@ -27,28 +29,31 @@ export default async function Nav() {
             </Link>
           ))}
         </nav>
-        {user ? (
-          <div className="flex items-center gap-3 text-sm">
-            <Link href="/me/reservations" className="text-gray-500 hover:text-pitch-600">
-              내 예약
-            </Link>
-            <Link href={`/players/${user.id}`} className="font-semibold text-gray-800 hover:text-pitch-600">
-              {user.nickname}
-            </Link>
-            <form action={logout}>
-              <button className="text-gray-400 hover:text-gray-600">로그아웃</button>
-            </form>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 text-sm">
-            <Link href="/login" className="text-gray-600 hover:text-pitch-600">
-              로그인
-            </Link>
-            <Link href="/signup" className="btn-primary !py-1.5">
-              회원가입
-            </Link>
-          </div>
-        )}
+        <div className="flex items-center gap-3 text-sm">
+          <LocaleSwitcher current={locale} />
+          {user ? (
+            <>
+              <Link href="/me/reservations" className="text-gray-500 hover:text-pitch-600">
+                {t.nav.myReservations}
+              </Link>
+              <Link href={`/players/${user.id}`} className="font-semibold text-gray-800 hover:text-pitch-600">
+                {user.nickname}
+              </Link>
+              <form action={logout}>
+                <button className="text-gray-400 hover:text-gray-600">{t.nav.logout}</button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-gray-600 hover:text-pitch-600">
+                {t.nav.login}
+              </Link>
+              <Link href="/signup" className="btn-primary !py-1.5">
+                {t.nav.signup}
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

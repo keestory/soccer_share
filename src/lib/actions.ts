@@ -1,12 +1,22 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "./prisma";
 import { createSession, destroySession, hashPassword, requireUser, verifyPassword } from "./auth";
+import { getPaymentProvider } from "./payments";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
+}
+
+// ---------- 언어 설정 ----------
+
+export async function setLocale(locale: string) {
+  const store = await cookies();
+  store.set("locale", locale === "en" ? "en" : "ko", { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  revalidatePath("/", "layout");
 }
 
 // ---------- 인증 ----------
@@ -373,6 +383,30 @@ export async function updateGameStatus(gameId: string, status: string) {
   await prisma.pickupGame.updateMany({ where: { id: gameId, hostId: user.id }, data: { status } });
   revalidatePath(`/games/${gameId}`);
   revalidatePath("/games");
+}
+
+// 성사된 게임의 참가비 결제 시작 (no-confirm-no-charge: CONFIRMED 전에는 불가)
+export async function startGamePayment(gameId: string) {
+  const user = await requireUser();
+  const participant = await prisma.gameParticipant.findUnique({
+    where: { gameId_userId: { gameId, userId: user.id } },
+    include: { game: true },
+  });
+  if (!participant) throw new Error("이 게임의 참가자가 아닙니다.");
+  const { game } = participant;
+  if (game.status !== "CONFIRMED") throw new Error("게임이 성사된 뒤에 결제할 수 있습니다.");
+  if (game.feePerHead <= 0) throw new Error("참가비가 없는 게임입니다.");
+  if (participant.paymentStatus === "PAID") return;
+
+  const provider = getPaymentProvider();
+  const session = await provider.createCheckout({
+    participantId: participant.id,
+    gameId,
+    amount: game.feePerHead,
+    currency: game.currency,
+    description: `${game.title} 참가비`,
+  });
+  redirect(session.checkoutUrl);
 }
 
 // ---------- 구장 예약 ----------

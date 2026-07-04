@@ -2,10 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
 import { MATCH_STATUS_LABELS, POST_STATUS_LABELS, formatDate } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const t = await getDict();
   const [matches, transfers, mercenaries, venues] = await Promise.all([
     prisma.matchPost.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { author: true } }),
     prisma.transferPost.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { author: true } }),
@@ -16,16 +18,14 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <section className="rounded-2xl bg-pitch-600 px-8 py-10 text-white">
-        <h1 className="text-3xl font-extrabold">이번 주말, 같이 차실래요?</h1>
-        <p className="mt-2 text-pitch-100">
-          상대팀 매칭 · 구장 양도 · 용병 모집 · 구장 예약 · 팀 프로필까지 한 곳에서.
-        </p>
+        <h1 className="text-3xl font-extrabold">{t.home.heroTitle}</h1>
+        <p className="mt-2 text-pitch-100">{t.home.heroSubtitle}</p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/matches/new" className="btn-secondary">
-            매치 올리기
+          <Link href="/games/new" className="btn-secondary">
+            {t.home.ctaGame}
           </Link>
           <Link href="/venues" className="rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25">
-            구장 예약하기
+            {t.home.ctaBook}
           </Link>
         </div>
       </section>
@@ -33,9 +33,9 @@ export default async function HomePage() {
       <div className="grid gap-6 md:grid-cols-2">
         <section className="card">
           <header className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold">⚔️ 매치찾기</h2>
+            <h2 className="font-bold">{t.home.secMatches}</h2>
             <Link href="/matches" className="text-xs text-gray-400 hover:text-pitch-600">
-              더보기 →
+              {t.home.more}
             </Link>
           </header>
           <ul className="space-y-2.5">
@@ -48,15 +48,15 @@ export default async function HomePage() {
                 <span className="shrink-0 text-xs text-gray-400">{formatDate(p.matchDate)}</span>
               </li>
             ))}
-            {matches.length === 0 && <li className="text-sm text-gray-400">아직 게시글이 없습니다.</li>}
+            {matches.length === 0 && <li className="text-sm text-gray-400">{t.home.empty}</li>}
           </ul>
         </section>
 
         <section className="card">
           <header className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold">🎫 구장양도</h2>
+            <h2 className="font-bold">{t.home.secTransfers}</h2>
             <Link href="/transfers" className="text-xs text-gray-400 hover:text-pitch-600">
-              더보기 →
+              {t.home.more}
             </Link>
           </header>
           <ul className="space-y-2.5">
@@ -71,15 +71,15 @@ export default async function HomePage() {
                 <span className="shrink-0 text-xs text-gray-400">{formatDate(p.matchDate)}</span>
               </li>
             ))}
-            {transfers.length === 0 && <li className="text-sm text-gray-400">아직 게시글이 없습니다.</li>}
+            {transfers.length === 0 && <li className="text-sm text-gray-400">{t.home.empty}</li>}
           </ul>
         </section>
 
         <section className="card">
           <header className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold">🏃 용병</h2>
+            <h2 className="font-bold">{t.home.secMercenaries}</h2>
             <Link href="/mercenaries" className="text-xs text-gray-400 hover:text-pitch-600">
-              더보기 →
+              {t.home.more}
             </Link>
           </header>
           <ul className="space-y-2.5">
@@ -94,15 +94,15 @@ export default async function HomePage() {
                 <Badge color={statusColor(p.status)}>{POST_STATUS_LABELS[p.status]}</Badge>
               </li>
             ))}
-            {mercenaries.length === 0 && <li className="text-sm text-gray-400">아직 게시글이 없습니다.</li>}
+            {mercenaries.length === 0 && <li className="text-sm text-gray-400">{t.home.empty}</li>}
           </ul>
         </section>
 
         <section className="card">
           <header className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold">🏟️ 구장예약</h2>
+            <h2 className="font-bold">{t.home.secVenues}</h2>
             <Link href="/venues" className="text-xs text-gray-400 hover:text-pitch-600">
-              더보기 →
+              {t.home.more}
             </Link>
           </header>
           <ul className="space-y-2.5">
@@ -117,7 +117,7 @@ export default async function HomePage() {
                 <span className="shrink-0 text-xs text-gray-400">{v.region.replace("서울 ", "")}</span>
               </li>
             ))}
-            {venues.length === 0 && <li className="text-sm text-gray-400">등록된 구장이 없습니다.</li>}
+            {venues.length === 0 && <li className="text-sm text-gray-400">{t.home.emptyVenue}</li>}
           </ul>
         </section>
       </div>

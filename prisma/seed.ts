@@ -320,17 +320,17 @@ async function main() {
       endTime: "10:00",
       format: "풋살(5vs5)",
       capacity: 10,
-      minToConfirm: 8,
+      minToConfirm: 4,
       feePerHead: 8000,
       currency: "KRW",
       hostId: u1.id,
     },
   });
-  // 8명 참가 → 최소 인원(8) 달성으로 성사
+  // 4명 참가 → 최소 인원(4) 달성으로 성사(CONFIRMED). 결제는 대기(PENDING) 상태로 데모.
   await prisma.gameParticipant.createMany({
     data: [u1.id, u2.id, u3.id, u4.id].map((userId) => ({ gameId: g1.id, userId })),
   });
-  await prisma.pickupGame.update({ where: { id: g1.id }, data: { status: "OPEN" } });
+  await prisma.pickupGame.update({ where: { id: g1.id }, data: { status: "CONFIRMED" } });
 
   await prisma.pickupGame.create({
     data: {
