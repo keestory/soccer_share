@@ -382,6 +382,33 @@ export async function updateGameStatus(gameId: string, status: string) {
   revalidatePath("/games");
 }
 
+// 경기 결과 입력(주최자). 참가자별 골/도움/MVP → 개인 선수 카드에 자동 반영.
+export async function recordGameStats(formData: FormData) {
+  const user = await requireUser();
+  const gameId = field(formData, "gameId");
+  const game = await prisma.pickupGame.findFirst({
+    where: { id: gameId, hostId: user.id },
+    include: { participants: true },
+  });
+  if (!game) throw new Error("주최자만 결과를 입력할 수 있습니다.");
+
+  await Promise.all(
+    game.participants.map((p) =>
+      prisma.gameParticipant.update({
+        where: { id: p.id },
+        data: {
+          goals: Math.max(0, Number(formData.get(`goals_${p.id}`) ?? 0)),
+          assists: Math.max(0, Number(formData.get(`assists_${p.id}`) ?? 0)),
+          mvp: formData.get(`mvp`) === p.id,
+        },
+      }),
+    ),
+  );
+  revalidatePath(`/games/${gameId}`);
+  // 참가자들의 선수 카드도 갱신
+  game.participants.forEach((p) => revalidatePath(`/players/${p.userId}`));
+}
+
 // ---------- 구장 예약 ----------
 
 export async function createReservation(prevState: { error?: string }, formData: FormData) {

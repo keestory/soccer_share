@@ -236,6 +236,10 @@ model GameParticipant {
   gameId   String
   userId   String
   joinedAt DateTime @default(now())
+  // 경기 후 주최자가 입력하는 결과 — 참가(출석)는 이 row의 존재로 자동 집계
+  goals    Int      @default(0)
+  assists  Int      @default(0)
+  mvp      Boolean  @default(false)
 
   game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)

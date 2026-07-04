@@ -325,8 +325,14 @@ async function main() {
     },
   });
   // 4명 참가 → 최소 인원(4) 달성으로 게임 성사(CONFIRMED) 데모.
+  // 경기 결과(골/도움/MVP)까지 입력해 개인 선수 카드 자동 집계를 보여준다.
   await prisma.gameParticipant.createMany({
-    data: [u1.id, u2.id, u3.id, u4.id].map((userId) => ({ gameId: g1.id, userId })),
+    data: [
+      { gameId: g1.id, userId: u1.id, goals: 2, assists: 1, mvp: true },
+      { gameId: g1.id, userId: u2.id, goals: 1, assists: 0 },
+      { gameId: g1.id, userId: u3.id, goals: 0, assists: 2 },
+      { gameId: g1.id, userId: u4.id, goals: 0, assists: 0 },
+    ],
   });
   await prisma.pickupGame.update({ where: { id: g1.id }, data: { status: "CONFIRMED" } });
 

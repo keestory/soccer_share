@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { joinGame, leaveGame, updateGameStatus } from "@/lib/actions";
+import { joinGame, leaveGame, recordGameStats, updateGameStatus } from "@/lib/actions";
 import Badge, { statusColor } from "@/components/Badge";
 import { formatDate } from "@/lib/constants";
 import { getDict } from "@/lib/locale";
@@ -138,10 +138,56 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 {p.user.nickname}
               </Link>
               {p.userId === game.hostId && <Badge color="orange">{t.host}</Badge>}
+              {p.mvp && <Badge color="orange">MVP</Badge>}
+              {(p.goals > 0 || p.assists > 0) && (
+                <span className="text-xs text-gray-400">
+                  {p.goals > 0 && `⚽ ${p.goals}`} {p.assists > 0 && `👟 ${p.assists}`}
+                </span>
+              )}
             </li>
           ))}
         </ul>
       </section>
+
+      {/* 경기 결과 입력 (주최자) — 개인 선수 카드에 자동 반영 */}
+      {isHost && (game.status === "CONFIRMED" || game.status === "CLOSED") && (
+        <form action={recordGameStats} className="card mt-4">
+          <input type="hidden" name="gameId" value={game.id} />
+          <h2 className="text-sm font-bold text-gray-700">{t.recordTitle}</h2>
+          <p className="mb-3 mt-0.5 text-xs text-gray-400">{t.recordHint}</p>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-gray-400">
+            <span className="flex-1">{/* name */}</span>
+            <span className="w-14 text-center">{t.goals}</span>
+            <span className="w-14 text-center">{t.assists}</span>
+            <span className="w-10 text-center">{t.mvp}</span>
+          </div>
+          <div className="space-y-2">
+            {game.participants.map((p) => (
+              <div key={p.id} className="flex items-center gap-2">
+                <span className="flex-1 truncate text-sm">{p.user.nickname}</span>
+                <input
+                  name={`goals_${p.id}`}
+                  type="number"
+                  min={0}
+                  defaultValue={p.goals}
+                  className="input w-14 !px-2 !py-1 text-center"
+                />
+                <input
+                  name={`assists_${p.id}`}
+                  type="number"
+                  min={0}
+                  defaultValue={p.assists}
+                  className="input w-14 !px-2 !py-1 text-center"
+                />
+                <span className="flex w-10 justify-center">
+                  <input type="radio" name="mvp" value={p.id} defaultChecked={p.mvp} />
+                </span>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary mt-3 w-full">{t.saveStats}</button>
+        </form>
+      )}
     </div>
   );
 }
