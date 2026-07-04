@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { RANKING_CATEGORIES, type RankingKey, positionDot, positionLabel } from "@/lib/constants";
+import { positionDot } from "@/lib/constants";
+import { dictionaries, type Locale } from "@/lib/dictionaries";
+
+type RankingKey = "goals" | "assists" | "rating" | "attendance" | "cleanSheet";
+const CAT_ORDER: RankingKey[] = ["goals", "assists", "rating", "attendance", "cleanSheet"];
 
 export type StatRecord = {
   date: string; // 표시용 YYYY.MM.DD
@@ -57,15 +61,19 @@ function recordsOf(p: RankedPlayer, key: RankingKey): StatRecord[] {
   }
 }
 
-function displayValue(p: RankedPlayer, key: RankingKey): string {
-  const unit = RANKING_CATEGORIES.find((c) => c.key === key)!.unit;
+type Cats = Record<RankingKey, { label: string; unit: string }>;
+
+function displayValue(p: RankedPlayer, key: RankingKey, cats: Cats): string {
+  const unit = cats[key].unit;
   if (key === "rating") return p.ratingAvg == null ? "-" : `${p.ratingAvg.toFixed(2)}${unit}`;
   return `${valueOf(p, key)}${unit}`;
 }
 
 const medal = ["bg-yellow-400 text-white", "bg-gray-300 text-white", "bg-amber-700 text-white"];
 
-export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
+export default function RankingBoard({ players, locale }: { players: RankedPlayer[]; locale: Locale }) {
+  const t = dictionaries[locale].pm;
+  const cats = t.categories as Cats;
   const [category, setCategory] = useState<RankingKey>("goals");
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -74,18 +82,18 @@ export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2">
-        {RANKING_CATEGORIES.map((c) => (
+        {CAT_ORDER.map((key) => (
           <button
-            key={c.key}
+            key={key}
             onClick={() => {
-              setCategory(c.key);
+              setCategory(key);
               setOpenId(null);
             }}
             className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-              category === c.key ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-500"
+              category === key ? "bg-blue-600 text-white" : "border border-gray-200 bg-white text-gray-500"
             }`}
           >
-            {c.label}
+            {cats[key].label}
           </button>
         ))}
       </div>
@@ -112,9 +120,9 @@ export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-lg font-bold text-gray-900">{p.name}</span>
-                  <span className="block text-sm text-gray-400">{positionLabel(p.position)}</span>
+                  <span className="block text-sm text-gray-400">{t.positions[p.position] ?? p.position}</span>
                 </span>
-                <span className="shrink-0 text-xl font-extrabold text-blue-600">{displayValue(p, category)}</span>
+                <span className="shrink-0 text-xl font-extrabold text-blue-600">{displayValue(p, category, cats)}</span>
                 <svg
                   className={`h-5 w-5 shrink-0 text-gray-300 transition-transform ${open ? "rotate-180" : ""}`}
                   fill="none"
@@ -128,10 +136,10 @@ export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
               {open && (
                 <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
                   <p className="mb-2 text-xs font-bold text-gray-500">
-                    {RANKING_CATEGORIES.find((c) => c.key === category)!.label} 기록 {records.length}건
+                    {cats[category].label} {t.recordCount(records.length)}
                   </p>
                   {records.length === 0 ? (
-                    <p className="text-sm text-gray-400">기록이 없습니다.</p>
+                    <p className="text-sm text-gray-400">{t.noRecords}</p>
                   ) : (
                     <ul className="space-y-1.5">
                       {records.map((r, idx) => (
@@ -144,12 +152,12 @@ export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
                           <span className="flex-1 truncate text-gray-600">vs {r.opponent}</span>
                           {r.quarter != null && (
                             <span className="shrink-0 rounded bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-600">
-                              {r.quarter}쿼터
+                              {t.quarter(r.quarter)}
                             </span>
                           )}
                           {r.rating != null && (
                             <span className="shrink-0 rounded bg-pitch-100 px-2 py-0.5 text-xs font-bold text-pitch-700">
-                              평점 {r.rating.toFixed(1)}
+                              {t.ratingBadge(r.rating.toFixed(1))}
                             </span>
                           )}
                         </li>
@@ -163,7 +171,7 @@ export default function RankingBoard({ players }: { players: RankedPlayer[] }) {
         })}
         {ranked.length === 0 && (
           <li className="rounded-2xl bg-white px-5 py-10 text-center text-sm text-gray-400">
-            등록된 선수가 없습니다.
+            {t.rosterEmpty}
           </li>
         )}
       </ul>

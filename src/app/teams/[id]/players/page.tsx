@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import PlayerManagement from "@/components/PlayerManagement";
 import type { RankedPlayer, StatRecord } from "@/components/RankingBoard";
 import { formatPlayedAt } from "@/lib/constants";
+import { getLocale } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export default async function PlayerManagementPage({ params }: { params: Promise
       <Link href={`/teams/${team.id}`} className="mb-3 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-pitch-600">
         ← {team.name}
       </Link>
-      <PlayerManagement teamId={team.id} isOwner={isOwner} players={players} matches={matches} />
+      <PlayerManagement teamId={team.id} isOwner={isOwner} players={players} matches={matches} locale={await getLocale()} />
     </div>
   );
 }
