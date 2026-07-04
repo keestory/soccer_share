@@ -6,7 +6,8 @@ export const LOCALE_COOKIE = "locale";
 
 export async function getLocale(): Promise<Locale> {
   const store = await cookies();
-  return store.get(LOCALE_COOKIE)?.value === "en" ? "en" : "ko";
+  const v = store.get(LOCALE_COOKIE)?.value;
+  return v === "en" || v === "id" ? v : "ko";
 }
 
 // 서버 컴포넌트에서 사전 획득: const t = await getDict();

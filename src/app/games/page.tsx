@@ -3,18 +3,13 @@ import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
 import RegionFilter from "@/components/RegionFilter";
 import { formatDate } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
-const GAME_STATUS: Record<string, string> = {
-  OPEN: "모집중",
-  CONFIRMED: "성사됨",
-  CLOSED: "마감",
-  CANCELLED: "취소",
-};
-
 export default async function GamesPage({ searchParams }: { searchParams: Promise<{ region?: string }> }) {
   const { region } = await searchParams;
+  const t = (await getDict()).games;
   const games = await prisma.pickupGame.findMany({
     where: region ? { region } : undefined,
     orderBy: { createdAt: "desc" },
@@ -24,12 +19,12 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-xl font-bold">🥅 픽업 게임</h1>
+        <h1 className="text-xl font-bold">{t.title}</h1>
         <Link href="/games/new" className="btn-primary">
-          게임 열기
+          {t.open}
         </Link>
       </div>
-      <p className="mb-4 text-sm text-gray-400">최소 인원을 채우면 게임이 자동으로 성사됩니다 · 무료 매칭</p>
+      <p className="mb-4 text-sm text-gray-400">{t.subtitle}</p>
       <RegionFilter basePath="/games" current={region} />
       <ul className="space-y-2">
         {games.map((g) => {
@@ -40,7 +35,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
               <Link href={`/games/${g.id}`} className="card block hover:border-pitch-500">
                 <div className="flex items-center gap-2">
                   <Badge color={statusColor(g.status === "CONFIRMED" ? "MATCHED" : g.status)}>
-                    {GAME_STATUS[g.status]}
+                    {t.status[g.status]}
                   </Badge>
                   <Badge>{g.format}</Badge>
                 </div>
@@ -56,14 +51,14 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
                     />
                   </div>
                   <span className="shrink-0 text-xs font-semibold text-gray-500">
-                    {filled}/{g.capacity}명
+                    {filled}/{g.capacity}
                   </span>
                 </div>
               </Link>
             </li>
           );
         })}
-        {games.length === 0 && <li className="card text-center text-sm text-gray-400">열린 게임이 없습니다.</li>}
+        {games.length === 0 && <li className="card text-center text-sm text-gray-400">{t.empty}</li>}
       </ul>
     </div>
   );

@@ -13,8 +13,9 @@ function field(formData: FormData, name: string): string {
 // ---------- 언어 설정 ----------
 
 export async function setLocale(locale: string) {
+  const value = locale === "en" || locale === "id" ? locale : "ko";
   const store = await cookies();
-  store.set("locale", locale === "en" ? "en" : "ko", { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  store.set("locale", value, { path: "/", maxAge: 60 * 60 * 24 * 365 });
   revalidatePath("/", "layout");
 }
 
