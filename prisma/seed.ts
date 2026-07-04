@@ -310,6 +310,10 @@ async function main() {
     }
   }
 
+  // 데모: 로스터 선수 '이무창'을 데모 회원(u1)과 연결 → 프로필에 팀 기록 노출
+  const linkTarget = await prisma.player.findFirst({ where: { teamId: team1.id, name: "이무창" } });
+  if (linkTarget) await prisma.player.update({ where: { id: linkTarget.id }, data: { userId: u1.id } });
+
   // ----- 픽업 게임 (정원·성사, 무료 매칭) -----
   const g1 = await prisma.pickupGame.create({
     data: {

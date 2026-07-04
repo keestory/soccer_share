@@ -321,12 +321,22 @@ export async function addPlayer(formData: FormData) {
   if (!name) throw new Error("선수 이름을 입력해주세요.");
   const numberRaw = field(formData, "number");
   const number = numberRaw ? Math.trunc(Number(numberRaw)) : null;
+  // 연결 회원(선택): 팀 멤버인 경우에만 연결 허용
+  const linkUserId = field(formData, "userId") || null;
+  let userId: string | null = null;
+  if (linkUserId) {
+    const member = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId: linkUserId } },
+    });
+    if (member) userId = linkUserId;
+  }
   await prisma.player.create({
     data: {
       teamId,
       name,
       position: oneOf(field(formData, "position"), ["GK", "DF", "MF", "FW"] as const, "MF"),
       number: number != null && Number.isFinite(number) ? Math.max(0, number) : null,
+      userId,
     },
   });
   revalidatePath(`/teams/${teamId}/players`);

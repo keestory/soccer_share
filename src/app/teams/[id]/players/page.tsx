@@ -15,6 +15,7 @@ export default async function PlayerManagementPage({ params }: { params: Promise
     where: { id },
     include: {
       records: { orderBy: { playedAt: "desc" } },
+      members: { include: { user: { select: { id: true, nickname: true } } } },
       players: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -25,6 +26,8 @@ export default async function PlayerManagementPage({ params }: { params: Promise
     },
   });
   if (!team) notFound();
+
+  const members = team.members.map((m) => ({ id: m.user.id, nickname: m.user.nickname }));
 
   const user = await getCurrentUser();
   const isOwner = user?.id === team.ownerId;
@@ -85,7 +88,7 @@ export default async function PlayerManagementPage({ params }: { params: Promise
       <Link href={`/teams/${team.id}`} className="mb-3 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-pitch-600">
         ← {team.name}
       </Link>
-      <PlayerManagement teamId={team.id} isOwner={isOwner} players={players} matches={matches} locale={await getLocale()} />
+      <PlayerManagement teamId={team.id} isOwner={isOwner} players={players} matches={matches} members={members} locale={await getLocale()} />
     </div>
   );
 }

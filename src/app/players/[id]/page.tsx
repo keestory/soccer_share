@@ -29,6 +29,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         include: { game: { select: { id: true, title: true, matchDate: true, format: true } } },
         orderBy: { joinedAt: "desc" },
       },
+      rosterEntries: {
+        include: {
+          team: { select: { id: true, name: true } },
+          events: { select: { type: true } },
+          appearances: { select: { rating: true, cleanSheet: true } },
+        },
+      },
     },
   });
   if (!player) notFound();
@@ -42,6 +49,20 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
     assists: played.reduce((s, g) => s + g.assists, 0),
     mvp: played.filter((g) => g.mvp).length,
   };
+
+  // 팀 로스터 기록(연결된 Player) 집계 → 픽업과 함께 한 프로필에서
+  const rosterEvents = player.rosterEntries.flatMap((p) => p.events);
+  const rosterApps = player.rosterEntries.flatMap((p) => p.appearances);
+  const rosterRatings = rosterApps.filter((a) => a.rating != null).map((a) => a.rating as number);
+  const roster = {
+    goals: rosterEvents.filter((e) => e.type === "GOAL").length,
+    assists: rosterEvents.filter((e) => e.type === "ASSIST").length,
+    apps: rosterApps.length,
+    cleanSheet: rosterApps.filter((a) => a.cleanSheet).length,
+    ratingAvg: rosterRatings.length ? rosterRatings.reduce((s, r) => s + r, 0) / rosterRatings.length : null,
+    teams: player.rosterEntries.filter((p) => p.events.length || p.appearances.length).map((p) => p.team.name),
+  };
+  const hasRoster = roster.apps > 0 || roster.goals > 0 || roster.assists > 0;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -109,6 +130,35 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <p className="mt-3 text-sm text-gray-400">{t.noPickup}</p>
         )}
       </section>
+
+      {hasRoster && (
+        <section className="card">
+          <h2 className="mb-3 font-bold">{t.teamRecord}</h2>
+          <div className="grid grid-cols-4 gap-2 rounded-lg bg-gray-50 p-4 text-center">
+            <div>
+              <p className="text-lg font-extrabold text-pitch-600">{roster.goals}</p>
+              <p className="text-xs text-gray-400">{t.goals}</p>
+            </div>
+            <div>
+              <p className="text-lg font-extrabold text-blue-600">{roster.assists}</p>
+              <p className="text-xs text-gray-400">{t.assists}</p>
+            </div>
+            <div>
+              <p className="text-lg font-extrabold">{roster.apps}</p>
+              <p className="text-xs text-gray-400">{t.played}</p>
+            </div>
+            <div>
+              <p className="text-lg font-extrabold text-orange-500">
+                {roster.ratingAvg == null ? "-" : roster.ratingAvg.toFixed(1)}
+              </p>
+              <p className="text-xs text-gray-400">★</p>
+            </div>
+          </div>
+          {roster.teams.length > 0 && (
+            <p className="mt-2 text-xs text-gray-400">{roster.teams.join(" · ")}</p>
+          )}
+        </section>
+      )}
 
       <section className="card">
         <h2 className="mb-3 font-bold">{t.teamsTitle}</h2>

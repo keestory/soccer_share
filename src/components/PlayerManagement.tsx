@@ -7,6 +7,7 @@ import { positionDot } from "@/lib/constants";
 import { dictionaries, type Dict, type Locale } from "@/lib/dictionaries";
 
 type MatchOption = { id: string; label: string; quarters: number };
+type Member = { id: string; nickname: string };
 type PM = Dict["pm"];
 
 const POS_CODES = ["FW", "MF", "DF", "GK"] as const;
@@ -16,12 +17,14 @@ export default function PlayerManagement({
   isOwner,
   players,
   matches,
+  members,
   locale,
 }: {
   teamId: string;
   isOwner: boolean;
   players: RankedPlayer[];
   matches: MatchOption[];
+  members: Member[];
   locale: Locale;
 }) {
   const t = dictionaries[locale].pm;
@@ -58,7 +61,7 @@ export default function PlayerManagement({
         <form action={addPlayer} className="card mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <input type="hidden" name="teamId" value={teamId} />
           <input name="name" className="input sm:col-span-2" placeholder={t.playerName} required />
-          <select name="position" className="input" defaultValue="MF">
+          <select name="position" className="input" defaultValue="MF" aria-label={t.positions.MF}>
             {POS_CODES.map((code) => (
               <option key={code} value={code}>
                 {t.positions[code]}
@@ -66,6 +69,14 @@ export default function PlayerManagement({
             ))}
           </select>
           <input name="number" type="number" min={0} className="input" placeholder={t.number} />
+          <select name="userId" className="input sm:col-span-4" defaultValue="" aria-label={t.linkMember}>
+            <option value="">{t.linkMember} — {t.linkNone}</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nickname}
+              </option>
+            ))}
+          </select>
           <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white sm:col-span-4">
             {t.add}
           </button>
