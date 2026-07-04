@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import Badge from "@/components/Badge";
-import { formatDate, levelLabel } from "@/lib/constants";
+import { formatDate } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const d = await getDict();
+  const t = d.players;
   const player = await prisma.user.findUnique({
     where: { id },
     select: {
@@ -47,45 +50,45 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <div>
             <h1 className="text-xl font-bold">{player.nickname}</h1>
             <div className="mt-2 flex items-center gap-2">
-              <Badge color="green">{levelLabel(player.level)}</Badge>
+              <Badge color="green">{d.common.levels[player.level - 1]}</Badge>
               {player.position && <Badge color="blue">{player.position}</Badge>}
               {player.region && <Badge>{player.region}</Badge>}
             </div>
           </div>
           {me?.id === player.id && (
             <Link href="/me" className="btn-secondary !py-1.5 text-xs">
-              프로필 수정
+              {t.edit}
             </Link>
           )}
         </div>
         {player.bio && <p className="mt-3 text-sm text-gray-700">{player.bio}</p>}
         <p className="mt-3 text-xs text-gray-400">
-          {player.createdAt.toLocaleDateString("ko-KR")} 가입 · 매치글 {player._count.matchPosts} · 용병글{" "}
-          {player._count.mercenaryPosts} · 양도글 {player._count.transferPosts} · 댓글 {player._count.comments}
+          {player.createdAt.toLocaleDateString("ko-KR")} {t.joinedSuffix} · {t.statMatch} {player._count.matchPosts} · {t.statMerc}{" "}
+          {player._count.mercenaryPosts} · {t.statTransfer} {player._count.transferPosts} · {t.statComment} {player._count.comments}
         </p>
       </article>
 
       <section className="card">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="font-bold">🥅 픽업 기록</h2>
-          <span className="text-xs text-gray-400">경기 결과로 자동 집계</span>
+          <h2 className="font-bold">{t.pickupTitle}</h2>
+          <span className="text-xs text-gray-400">{t.autoAgg}</span>
         </div>
         <div className="grid grid-cols-4 gap-2 rounded-lg bg-gray-50 p-4 text-center">
           <div>
             <p className="text-lg font-extrabold">{pickup.games}</p>
-            <p className="text-xs text-gray-400">출전</p>
+            <p className="text-xs text-gray-400">{t.played}</p>
           </div>
           <div>
             <p className="text-lg font-extrabold text-pitch-600">{pickup.goals}</p>
-            <p className="text-xs text-gray-400">골</p>
+            <p className="text-xs text-gray-400">{t.goals}</p>
           </div>
           <div>
             <p className="text-lg font-extrabold text-blue-600">{pickup.assists}</p>
-            <p className="text-xs text-gray-400">도움</p>
+            <p className="text-xs text-gray-400">{t.assists}</p>
           </div>
           <div>
             <p className="text-lg font-extrabold text-orange-500">{pickup.mvp}</p>
-            <p className="text-xs text-gray-400">MVP</p>
+            <p className="text-xs text-gray-400">{t.mvp}</p>
           </div>
         </div>
         {played.length > 0 ? (
@@ -103,25 +106,25 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-gray-400">아직 픽업 게임 기록이 없습니다.</p>
+          <p className="mt-3 text-sm text-gray-400">{t.noPickup}</p>
         )}
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-bold">소속 팀</h2>
+        <h2 className="mb-3 font-bold">{t.teamsTitle}</h2>
         <ul className="space-y-2">
           {player.memberships.map((m) => (
             <li key={m.id} className="flex items-center gap-2 text-sm">
               <Link href={`/teams/${m.team.id}`} className="font-semibold hover:text-pitch-600">
                 {m.team.name}
               </Link>
-              {m.role === "OWNER" && <Badge color="orange">주장</Badge>}
+              {m.role === "OWNER" && <Badge color="orange">{t.captain}</Badge>}
               <span className="text-xs text-gray-400">
-                {m.team.region} · {m.joinedAt.toLocaleDateString("ko-KR")}부터 활동
+                {m.team.region} · {m.joinedAt.toLocaleDateString("ko-KR")}{t.activeFrom}
               </span>
             </li>
           ))}
-          {player.memberships.length === 0 && <li className="text-sm text-gray-400">소속 팀이 없습니다.</li>}
+          {player.memberships.length === 0 && <li className="text-sm text-gray-400">{t.noTeams}</li>}
         </ul>
       </section>
     </div>

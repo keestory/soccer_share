@@ -9,18 +9,20 @@ export default function ReservationForm({
   openHour,
   closeHour,
   loggedIn,
+  labels,
 }: {
   venueId: string;
   date: string;
   openHour: number;
   closeHour: number;
   loggedIn: boolean;
+  labels: { start: string; end: string; book: string; booking: string; login: string };
 }) {
   const [state, action, pending] = useActionState<{ error?: string }, FormData>(createReservation, {});
   const hours = Array.from({ length: closeHour - openHour }, (_, i) => openHour + i);
 
   if (!loggedIn) {
-    return <p className="mt-4 text-sm text-gray-400">예약하려면 로그인이 필요합니다.</p>;
+    return <p className="mt-4 text-sm text-gray-400">{labels.login}</p>;
   }
 
   return (
@@ -29,7 +31,7 @@ export default function ReservationForm({
       <input type="hidden" name="date" value={date} />
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label">시작 시간</label>
+          <label className="label">{labels.start}</label>
           <select name="startHour" className="input">
             {hours.map((h) => (
               <option key={h} value={h}>
@@ -39,7 +41,7 @@ export default function ReservationForm({
           </select>
         </div>
         <div>
-          <label className="label">종료 시간</label>
+          <label className="label">{labels.end}</label>
           <select name="endHour" className="input" defaultValue={Math.min(openHour + 2, closeHour)}>
             {hours.map((h) => (
               <option key={h + 1} value={h + 1}>
@@ -51,7 +53,7 @@ export default function ReservationForm({
       </div>
       {state.error && <p className="text-sm text-red-500">{state.error}</p>}
       <button className="btn-primary w-full" disabled={pending}>
-        {pending ? "예약 중..." : `${date} 예약하기`}
+        {pending ? labels.booking : labels.book}
       </button>
     </form>
   );

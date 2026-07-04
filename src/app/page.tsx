@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
-import { MATCH_STATUS_LABELS, POST_STATUS_LABELS, formatDate } from "@/lib/constants";
+import { formatDate } from "@/lib/constants";
 import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +41,7 @@ export default async function HomePage() {
           <ul className="space-y-2.5">
             {matches.map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
-                <Badge color={statusColor(p.status)}>{MATCH_STATUS_LABELS[p.status]}</Badge>
+                <Badge color={statusColor(p.status)}>{t.matches.status[p.status]}</Badge>
                 <Link href={`/matches/${p.id}`} className="flex-1 truncate hover:text-pitch-600">
                   {p.title}
                 </Link>
@@ -63,7 +63,7 @@ export default async function HomePage() {
             {transfers.map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
                 <Badge color={p.tradeType === "GIVE" ? "orange" : "blue"}>
-                  {p.tradeType === "GIVE" ? "양도" : "양수"}
+                  {p.tradeType === "GIVE" ? t.transfers.give : t.transfers.take}
                 </Badge>
                 <Link href={`/transfers/${p.id}`} className="flex-1 truncate hover:text-pitch-600">
                   {p.title}
@@ -86,12 +86,12 @@ export default async function HomePage() {
             {mercenaries.map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
                 <Badge color={p.postType === "RECRUIT" ? "red" : "blue"}>
-                  {p.postType === "RECRUIT" ? "구해요" : "갈게요"}
+                  {p.postType === "RECRUIT" ? t.mercenaries.recruit : t.mercenaries.offer}
                 </Badge>
                 <Link href={`/mercenaries/${p.id}`} className="flex-1 truncate hover:text-pitch-600">
                   {p.title}
                 </Link>
-                <Badge color={statusColor(p.status)}>{POST_STATUS_LABELS[p.status]}</Badge>
+                <Badge color={statusColor(p.status)}>{t.common.postStatus[p.status]}</Badge>
               </li>
             ))}
             {mercenaries.length === 0 && <li className="text-sm text-gray-400">{t.home.empty}</li>}
@@ -109,7 +109,7 @@ export default async function HomePage() {
             {venues.map((v) => (
               <li key={v.id} className="flex items-center gap-2 text-sm">
                 <Badge color={v.venueType === "FUTSAL" ? "blue" : "green"}>
-                  {v.venueType === "FUTSAL" ? "풋살장" : "축구장"}
+                  {v.venueType === "FUTSAL" ? t.venues.futsal : t.venues.soccer}
                 </Badge>
                 <Link href={`/venues/${v.id}`} className="flex-1 truncate hover:text-pitch-600">
                   {v.name}

@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ region?: string }> }) {
   const { region } = await searchParams;
-  const t = (await getDict()).matches;
+  const d = await getDict();
+  const t = d.matches;
   const posts = await prisma.matchPost.findMany({
     where: region ? { region } : undefined,
     orderBy: { createdAt: "desc" },
@@ -24,7 +25,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           {t.write}
         </Link>
       </div>
-      <RegionFilter basePath="/matches" current={region} />
+      <RegionFilter basePath="/matches" current={region} allLabel={d.common.regionAll} />
       <ul className="space-y-2">
         {posts.map((p) => (
           <li key={p.id}>

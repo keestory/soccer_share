@@ -2,11 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
 import RegionFilter from "@/components/RegionFilter";
-import { POST_STATUS_LABELS, formatDate, formatPrice } from "@/lib/constants";
+import { formatDate, formatPrice } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransfersPage({ searchParams }: { searchParams: Promise<{ region?: string }> }) {
+  const d = await getDict();
+  const t = d.transfers;
   const { region } = await searchParams;
   const posts = await prisma.transferPost.findMany({
     where: region ? { region } : undefined,
@@ -17,18 +20,18 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">🎫 구장양도</h1>
+        <h1 className="text-xl font-bold">{t.title}</h1>
         <Link href="/transfers/new" className="btn-primary">
-          글쓰기
+          {t.write}
         </Link>
       </div>
-      <RegionFilter basePath="/transfers" current={region} />
+      <RegionFilter basePath="/transfers" current={region} allLabel={d.common.regionAll} />
       <ul className="space-y-2">
         {posts.map((p) => (
           <li key={p.id}>
             <Link href={`/transfers/${p.id}`} className="card flex items-center gap-3 !py-3 hover:border-pitch-500">
-              <Badge color={p.tradeType === "GIVE" ? "orange" : "blue"}>{p.tradeType === "GIVE" ? "양도" : "양수"}</Badge>
-              <Badge color={statusColor(p.status)}>{POST_STATUS_LABELS[p.status]}</Badge>
+              <Badge color={p.tradeType === "GIVE" ? "orange" : "blue"}>{p.tradeType === "GIVE" ? t.give : t.take}</Badge>
+              <Badge color={statusColor(p.status)}>{d.common.postStatus[p.status]}</Badge>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{p.title}</p>
                 <p className="mt-0.5 text-xs text-gray-400">
@@ -42,7 +45,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
             </Link>
           </li>
         ))}
-        {posts.length === 0 && <li className="card text-center text-sm text-gray-400">게시글이 없습니다.</li>}
+        {posts.length === 0 && <li className="card text-center text-sm text-gray-400">{t.empty}</li>}
       </ul>
     </div>
   );

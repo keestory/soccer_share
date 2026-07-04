@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import Badge, { statusColor } from "@/components/Badge";
 import RegionFilter from "@/components/RegionFilter";
-import { POST_STATUS_LABELS, formatDate, levelLabel } from "@/lib/constants";
+import { formatDate } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export default async function MercenariesPage({
 }: {
   searchParams: Promise<{ region?: string; type?: string }>;
 }) {
+  const d = await getDict();
+  const t = d.mercenaries;
   const { region, type } = await searchParams;
   const posts = await prisma.mercenaryPost.findMany({
     where: {
@@ -41,38 +44,38 @@ export default async function MercenariesPage({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">🏃 용병</h1>
+        <h1 className="text-xl font-bold">🏃 {t.title}</h1>
         <Link href="/mercenaries/new" className="btn-primary">
-          글쓰기
+          {t.write}
         </Link>
       </div>
       <div className="mb-3 flex gap-2">
-        {tab(undefined, "전체")}
-        {tab("RECRUIT", "용병 구해요")}
-        {tab("OFFER", "용병 갈게요")}
+        {tab(undefined, d.common.regionAll)}
+        {tab("RECRUIT", t.recruitTab)}
+        {tab("OFFER", t.offerTab)}
       </div>
-      <RegionFilter basePath="/mercenaries" current={region} />
+      <RegionFilter basePath="/mercenaries" current={region} allLabel={d.common.regionAll} />
       <ul className="space-y-2">
         {posts.map((p) => (
           <li key={p.id}>
             <Link href={`/mercenaries/${p.id}`} className="card flex items-center gap-3 !py-3 hover:border-pitch-500">
               <Badge color={p.postType === "RECRUIT" ? "red" : "blue"}>
-                {p.postType === "RECRUIT" ? "구해요" : "갈게요"}
+                {p.postType === "RECRUIT" ? t.recruit : t.offer}
               </Badge>
-              <Badge color={statusColor(p.status)}>{POST_STATUS_LABELS[p.status]}</Badge>
+              <Badge color={statusColor(p.status)}>{d.common.postStatus[p.status]}</Badge>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{p.title}</p>
                 <p className="mt-0.5 text-xs text-gray-400">
                   {p.region}
-                  {p.matchDate ? ` · ${formatDate(p.matchDate)}` : ""} · {p.position || "포지션 무관"} ·{" "}
-                  {levelLabel(p.level)}
+                  {p.matchDate ? ` · ${formatDate(p.matchDate)}` : ""} · {p.position || t.posNone} ·{" "}
+                  {d.common.levels[p.level - 1]}
                 </p>
               </div>
               <span className="shrink-0 text-xs text-gray-400">{p.author.nickname}</span>
             </Link>
           </li>
         ))}
-        {posts.length === 0 && <li className="card text-center text-sm text-gray-400">게시글이 없습니다.</li>}
+        {posts.length === 0 && <li className="card text-center text-sm text-gray-400">{t.empty}</li>}
       </ul>
     </div>
   );

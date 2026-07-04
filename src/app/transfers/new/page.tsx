@@ -2,33 +2,37 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { createTransferPost } from "@/lib/actions";
 import { REGIONS } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export default async function NewTransferPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
+  const d = await getDict();
+  const t = d.transfers;
+
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-xl font-bold">구장 양도/양수 글쓰기</h1>
+      <h1 className="mb-4 text-xl font-bold">{t.newTitle}</h1>
       <form action={createTransferPost} className="card space-y-4">
         <div>
-          <label className="label">유형</label>
+          <label className="label">{t.type}</label>
           <div className="flex gap-4 text-sm">
             <label className="flex items-center gap-1.5">
-              <input type="radio" name="tradeType" value="GIVE" defaultChecked /> 양도합니다
+              <input type="radio" name="tradeType" value="GIVE" defaultChecked /> {t.giveFull}
             </label>
             <label className="flex items-center gap-1.5">
-              <input type="radio" name="tradeType" value="TAKE" /> 양수 원해요
+              <input type="radio" name="tradeType" value="TAKE" /> {t.takeFull}
             </label>
           </div>
         </div>
         <div>
-          <label className="label">제목</label>
-          <input name="title" className="input" placeholder="예) 6/14(일) 13-15시 대진고 축구장 양도합니다" required />
+          <label className="label">{t.fTitle}</label>
+          <input name="title" className="input" required />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">지역</label>
+            <label className="label">{t.fRegion}</label>
             <select name="region" className="input">
               {REGIONS.map((r) => (
                 <option key={r}>{r}</option>
@@ -36,33 +40,33 @@ export default async function NewTransferPage() {
             </select>
           </div>
           <div>
-            <label className="label">구장명</label>
-            <input name="venueName" className="input" placeholder="예) 대진고등학교 축구장" required />
+            <label className="label">{t.venueName}</label>
+            <input name="venueName" className="input" required />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">날짜</label>
+            <label className="label">{t.fDate}</label>
             <input name="matchDate" type="date" className="input" required />
           </div>
           <div>
-            <label className="label">시작</label>
+            <label className="label">{t.fStart}</label>
             <input name="startTime" type="time" className="input" required />
           </div>
           <div>
-            <label className="label">종료</label>
+            <label className="label">{t.fEnd}</label>
             <input name="endTime" type="time" className="input" required />
           </div>
         </div>
         <div>
-          <label className="label">양도 금액 (원)</label>
-          <input name="price" type="number" min={0} step={1000} className="input" placeholder="예) 90000" required />
+          <label className="label">{t.price}</label>
+          <input name="price" type="number" min={0} step={1000} className="input" required />
         </div>
         <div>
-          <label className="label">내용</label>
-          <textarea name="content" className="input min-h-32" placeholder="예약 조건, 입금 방법 등을 적어주세요." required />
+          <label className="label">{t.fContent}</label>
+          <textarea name="content" className="input min-h-32" required />
         </div>
-        <button className="btn-primary w-full">등록하기</button>
+        <button className="btn-primary w-full">{t.submit}</button>
       </form>
     </div>
   );

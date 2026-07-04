@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import Badge from "@/components/Badge";
 import ReservationForm from "@/components/ReservationForm";
 import { formatDate, formatPrice } from "@/lib/constants";
+import { getDict } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function VenueDetailPage({
   });
   if (!venue) notFound();
   const user = await getCurrentUser();
+  const t = (await getDict()).venues;
 
   const hours = Array.from({ length: venue.closeHour - venue.openHour }, (_, i) => venue.openHour + i);
   const reservedHours = new Set(
@@ -50,7 +52,7 @@ export default async function VenueDetailPage({
       <article className="card">
         <div className="mb-1.5 flex items-center gap-2">
           <Badge color={venue.venueType === "FUTSAL" ? "blue" : "green"}>
-            {venue.venueType === "FUTSAL" ? "풋살장" : "축구장"}
+            {venue.venueType === "FUTSAL" ? t.futsal : t.soccer}
           </Badge>
           <Badge>{venue.surface}</Badge>
         </div>
@@ -60,13 +62,13 @@ export default async function VenueDetailPage({
         </p>
         <p className="mt-2 text-sm">
           <span className="font-bold text-pitch-700">{formatPrice(venue.pricePerHour)}</span>
-          <span className="text-gray-400"> / 시간 · 운영 {venue.openHour}시~{venue.closeHour}시</span>
+          <span className="text-gray-400"> {t.perHour} · {t.operating(venue.openHour, venue.closeHour)}</span>
         </p>
         {venue.description && <p className="mt-3 text-sm text-gray-700">{venue.description}</p>}
       </article>
 
       <section className="card mt-4">
-        <h2 className="mb-3 font-bold">예약 현황</h2>
+        <h2 className="mb-3 font-bold">{t.statusTitle}</h2>
         <div className="mb-4 flex flex-wrap gap-2">
           {days.map((d) => (
             <Link
@@ -87,11 +89,11 @@ export default async function VenueDetailPage({
                 reservedHours.has(h) ? "bg-gray-200 text-gray-400 line-through" : "bg-pitch-100 text-pitch-700"
               }`}
             >
-              {h}시
+              {t.hour(h)}
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-400">초록색: 예약 가능 · 회색: 예약됨</p>
+        <p className="mt-2 text-xs text-gray-400">{t.legend}</p>
 
         <ReservationForm
           venueId={venue.id}
@@ -99,6 +101,13 @@ export default async function VenueDetailPage({
           openHour={venue.openHour}
           closeHour={venue.closeHour}
           loggedIn={!!user}
+          labels={{
+            start: t.startTime,
+            end: t.endTime,
+            book: t.book(date),
+            booking: t.booking,
+            login: t.loginToBook,
+          }}
         />
       </section>
     </div>

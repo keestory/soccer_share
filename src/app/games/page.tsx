@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function GamesPage({ searchParams }: { searchParams: Promise<{ region?: string }> }) {
   const { region } = await searchParams;
-  const t = (await getDict()).games;
+  const d = await getDict();
+  const t = d.games;
   const games = await prisma.pickupGame.findMany({
     where: region ? { region } : undefined,
     orderBy: { createdAt: "desc" },
@@ -25,7 +26,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Promis
         </Link>
       </div>
       <p className="mb-4 text-sm text-gray-400">{t.subtitle}</p>
-      <RegionFilter basePath="/games" current={region} />
+      <RegionFilter basePath="/games" current={region} allLabel={d.common.regionAll} />
       <ul className="space-y-2">
         {games.map((g) => {
           const filled = g._count.participants;
