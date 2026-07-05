@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 회원 — 선수 프로필을 겸한다 (포지션, 레벨, 활동 지역)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nickname  String   @unique
+  password  String
+  position  String? // GK / DF / MF / FW
+  level     Int      @default(3) // 1(입문) ~ 5(선출급)
+  region    String?
+  bio       String?
+  createdAt DateTime @default(now())
+
+  ownedTeams     Team[]
+  memberships    TeamMember[]
+  matchPosts     MatchPost[]
+  transferPosts  TransferPost[]
+  mercenaryPosts MercenaryPost[]
+  comments       Comment[]
+  reservations   Reservation[]
+  hostedGames    PickupGame[]
+  gameJoins      GameParticipant[]
+  rosterEntries  Player[]
+  notifications  Notification[]
+  regionSubs     RegionSubscription[]
+}
+
+// 지역 새 게임 알림 구독 — 콜드스타트: 수요를 모아 공급(새 게임) 발생 시 복귀 유도
+model RegionSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  region    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, region])
+  @@index([region])
+}
+
+// 인앱 알림 (성사·참가·댓글 등) — 매칭 앱의 리텐션 복귀 트리거
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String // 수신자
+  type      String // GAME_CONFIRMED / GAME_JOINED / GAME_CANCELLED / COMMENT
+  actor     String? // 행위자 닉네임
+  title     String? // 대상 제목 (게임/게시글)
+  link      String // 클릭 시 이동 경로
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+// 팀 — 전적(MatchRecord)과 멤버 이력으로 팀의 활동/실력을 보여준다
+model Team {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  region      String
+  level       Int      @default(3)
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner      User          @relation(fields: [ownerId], references: [id])
+  members    TeamMember[]
+  records    MatchRecord[]
+  matchPosts MatchPost[]
+  players    Player[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     String   @default("MEMBER") // OWNER / MEMBER
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+// 팀 경기 전적
+model MatchRecord {
+  id           String   @id @default(cuid())
+  teamId       String
+  opponent     String
+  playedAt     DateTime
+  result       String // WIN / DRAW / LOSS
+  scoreFor     Int
+  scoreAgainst Int
+  quarters     Int      @default(4) // 경기 쿼터 수
+
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  events      PlayerEvent[]
+  appearances Appearance[]
+}
+
+// 팀 로스터에 등록된 선수 (앱 회원과 별개로 주장이 관리)
+model Player {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  position  String // GK / DF / MF / FW
+  number    Int?
+  userId    String? // 앱 회원과 연결 시 (선택)
+  createdAt DateTime @default(now())
+
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  events      PlayerEvent[]
+  appearances Appearance[]
+
+  @@index([userId])
+}
+
+// 골/도움 등 쿼터 단위로 발생한 개인 기록 이벤트
+model PlayerEvent {
+  id            String @id @default(cuid())
+  matchRecordId String
+  playerId      String
+  type          String // GOAL(골) / ASSIST(도움)
+  quarter       Int    @default(1)
+
+  matchRecord MatchRecord @relation(fields: [matchRecordId], references: [id], onDelete: Cascade)
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([matchRecordId])
+}
+
+// 경기 단위 개인 기록 (출전/평점/클린시트)
+model Appearance {
+  id            String  @id @default(cuid())
+  matchRecordId String
+  playerId      String
+  rating        Float? // 경기 평점 (0~10)
+  cleanSheet    Boolean @default(false)
+
+  matchRecord MatchRecord @relation(fields: [matchRecordId], references: [id], onDelete: Cascade)
+  player      Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchRecordId, playerId])
+  @@index([playerId])
+}
+
+// 1. 상대팀을 찾는 매치 게시글
+model MatchPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  region    String
+  venue     String
+  matchDate String // YYYY-MM-DD
+  startTime String // HH:mm
+  endTime   String // HH:mm
+  format    String // 11vs11 / 9vs9 / 풋살
+  status    String   @default("OPEN") // OPEN / MATCHED / CLOSED
+  views     Int      @default(0)
+  authorId  String
+  teamId    String?
+  createdAt DateTime @default(now())
+
+  author User  @relation(fields: [authorId], references: [id])
+  team   Team? @relation(fields: [teamId], references: [id])
+}
+
+// 2. 구장 양도/양수 게시글
+model TransferPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  tradeType String // GIVE(양도) / TAKE(양수 희망)
+  region    String
+  venueName String
+  matchDate String
+  startTime String
+  endTime   String
+  price     Int
+  status    String   @default("OPEN") // OPEN / DONE
+  views     Int      @default(0)
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+// 3. 용병 구함 / 용병 지원 게시글
+model MercenaryPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  postType  String // RECRUIT(용병 구해요) / OFFER(용병 갈게요)
+  region    String
+  matchDate String?
+  position  String? // GK / DF / MF / FW / 무관
+  level     Int      @default(3)
+  fee       Int      @default(0) // 참가비/일당
+  status    String   @default("OPEN") // OPEN / DONE
+  views     Int      @default(0)
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+// 4. 예약 가능한 구장
+model Venue {
+  id           String  @id @default(cuid())
+  name         String
+  region       String
+  address      String
+  venueType    String // FUTSAL / SOCCER
+  surface      String  @default("인조잔디")
+  pricePerHour Int
+  openHour     Int     @default(6)
+  closeHour    Int     @default(24)
+  description  String?
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  venueId   String
+  userId    String
+  date      String // YYYY-MM-DD
+  startHour Int
+  endHour   Int
+  status    String   @default("CONFIRMED") // CONFIRMED / CANCELLED
+  createdAt DateTime @default(now())
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, date])
+  @@index([userId])
+}
+
+// 픽업 게임 — "정원 있는 게임"에 참가/결제하는 모델 (P0: 매칭 + 인앱 경기당 결제)
+model PickupGame {
+  id           String   @id @default(cuid())
+  title        String
+  region       String
+  venue        String
+  matchDate    String // YYYY-MM-DD
+  startTime    String // HH:mm
+  endTime      String // HH:mm
+  format       String // 5-a-side / 7인제 / 11vs11 / 풋살
+  capacity     Int // 총 정원
+  minToConfirm Int // 정원 확정 임계치 (이 인원 이상이면 CONFIRMED)
+  status       String   @default("OPEN") // OPEN / CONFIRMED / CLOSED / CANCELLED
+  hostId       String
+  createdAt    DateTime @default(now())
+
+  host         User              @relation(fields: [hostId], references: [id])
+  participants GameParticipant[]
+  votes        GameVote[]
+
+  @@index([status])
+}
+
+// MVP 참가자 투표 (주최자 지정 대신) — 게임당 1인 1표
+model GameVote {
+  id        String   @id @default(cuid())
+  gameId    String
+  voterId   String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, voterId])
+  @@index([gameId])
+}
+
+model GameParticipant {
+  id       String   @id @default(cuid())
+  gameId   String
+  userId   String
+  joinedAt DateTime @default(now())
+  // 경기 후 주최자가 입력하는 결과 — 참가(출석)는 이 row의 존재로 자동 집계
+  goals    Int      @default(0)
+  assists  Int      @default(0)
+  mvp      Boolean  @default(false)
+
+  game PickupGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@index([userId])
+}
+
+// 게시글 공통 댓글 (postType + postId 로 연결)
+model Comment {
+  id        String   @id @default(cuid())
+  postType  String // MATCH / TRANSFER / MERCENARY
+  postId    String
+  content   String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postType, postId])
+}
